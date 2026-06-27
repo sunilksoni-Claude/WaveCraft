@@ -403,6 +403,14 @@ canvas.knob{cursor:ns-resize;display:block}
 }
 #export-close-btn:hover{background:rgba(255,255,255,0.09);color:var(--text-primary)}
 
+/* Rec preset selector */
+#rec-preset{
+  background:rgba(255,255,255,0.07);border:1px solid rgba(255,107,53,0.35);
+  border-radius:6px;color:var(--text-secondary);font-size:11px;
+  padding:4px 6px;outline:none;cursor:pointer;max-width:110px;
+  font-family:'Inter',sans-serif;
+}
+#rec-preset:focus{border-color:rgba(255,107,53,0.7);color:var(--text-primary)}
 /* Scrollbar global */
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -444,6 +452,16 @@ canvas.knob{cursor:ns-resize;display:block}
   </div>
   <!-- Time -->
   <div id="time-display">0:00.000</div>
+  <!-- Preset -->
+  <select id="rec-preset" title="Recording preset">
+    <option value="bansuri">🪈 Bansuri</option>
+    <option value="bansuri-concert">🪈 Concert</option>
+    <option value="bansuri-intimate">🪈 Intimate</option>
+    <option value="bansuri-temple">🪈 Temple</option>
+    <option value="bansuri-dry">🪈 Dry</option>
+    <option value="vocal">🎤 Vocal</option>
+    <option value="flat">— Flat</option>
+  </select>
   <!-- Transport -->
   <div id="transport">
     <button class="glass-control t-btn" id="btn-return" title="Return to start (Home)">⏮</button>
@@ -761,7 +779,9 @@ function createTrack(name, buffer) {
 }
 
 function updateDuration() {
-  totalDuration = tracks.reduce((m,t) => t.buffer ? Math.max(m, t.startOffset + t.buffer.duration) : m, 10);
+  let d = tracks.reduce((m,t) => t.buffer ? Math.max(m, t.startOffset + t.buffer.duration) : m, 10);
+  if (recActive && recLiveTrack) d = Math.max(d, recLiveTrack.startOffset + (Date.now()-recStart)/1000 + 4);
+  totalDuration = d;
 }
 
 function selectTrack(id) {
@@ -993,6 +1013,20 @@ function renderTimeline() {
 
       // Waveform
       drawWaveform(ctx, t.buffer, clipX, y+4, clipW, h-8, t.color);
+    }
+
+    // Recording-in-progress: pulsing red border grows with recording
+    if (t.isRecording && recStart) {
+      const recW = Math.max(4, ((Date.now()-recStart)/1000) * timelineZoom);
+      const clipX2 = t.startOffset * timelineZoom;
+      ctx.strokeStyle = '#FF2D55';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#FF2D55';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(clipX2,y+2,recW,h-4,4) : ctx.rect(clipX2,y+2,recW,h-4);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
     }
 
     // Muted overlay
@@ -1807,15 +1841,22 @@ function drawMasterVU() {
 }
 
 // ─── RECORDING MODULE ────────────────────────────────────────────────────────
-let micStream=null, micSource=null, micInputGain=null;
-let recorder=null, recTimerInterval=null, recStart=null;
+let micStream=null, micSource=null, micInputGain=null, recProcessor=null;
+let recSamples=[], recLiveTrack=null;
+let recTimerInterval=null, recStart=null;
 let recActive=false, recTakeCount=0, recStartPos=0;
+let currentPreset='bansuri';
+
+document.getElementById('rec-preset').addEventListener('change', e => {
+  currentPreset = e.target.value;
+});
 
 async function startRecording() {
   if (recActive) return;
   if (!audioCtx) initAudio();
   if (audioCtx.state !== 'running') { try { await audioCtx.resume(); } catch(e){} }
   try {
+    // Request mic (reuse stream if already have it)
     if (!micStream) {
       micStream = await navigator.mediaDevices.getUserMedia({
         audio:{ channelCount:1, echoCancellation:false, noiseSuppression:false, autoGainControl:false }
@@ -1825,49 +1866,104 @@ async function startRecording() {
       micInputGain.gain.value = 1.2;
       micSource.connect(micInputGain);
     }
-    const dest = audioCtx.createMediaStreamDestination();
-    micInputGain.connect(dest);
-    const mimeType = ['audio/webm;codecs=opus','audio/mp4','audio/ogg']
-      .find(t => MediaRecorder.isTypeSupported(t)) || '';
-    recorder = new MediaRecorder(dest.stream, {mimeType});
-    const chunks = [];
-    recorder.ondataavailable = e => { if (e.data.size>0) chunks.push(e.data); };
-    recorder.onstop = async () => {
-      try { micInputGain.disconnect(dest); } catch(e){}
-      if (!chunks.length) return;
-      const blob = new Blob(chunks, {type: recorder.mimeType || 'audio/webm'});
-      try {
-        const ab = await blob.arrayBuffer();
-        const buf = await audioCtx.decodeAudioData(ab);
-        recTakeCount++;
-        const t = createTrack('Take ' + recTakeCount, buf);
-        t.startOffset = Math.max(0, recStartPos);
-        applyPresetToTrack(t, 'bansuri');
-        updateDuration(); renderTrackList(); renderTimeline();
-      } catch(err) { alert('Could not save recording: ' + err.message); }
+
+    // Collect raw PCM via ScriptProcessorNode
+    recSamples = [];
+    recProcessor = audioCtx.createScriptProcessor(4096, 1, 1);
+    // silent node so ScriptProcessor runs without monitoring feedback
+    const silentOut = audioCtx.createGain();
+    silentOut.gain.value = 0;
+    micInputGain.connect(recProcessor);
+    recProcessor.connect(silentOut);
+    silentOut.connect(audioCtx.destination);
+
+    let chunkCount = 0;
+    recProcessor.onaudioprocess = (e) => {
+      if (!recActive) return;
+      recSamples.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+      chunkCount++;
+      // Refresh live waveform ~every 1 second (48000/4096 ≈ 12 chunks)
+      if (chunkCount % 12 === 0) refreshLiveWaveform();
     };
-    recorder.start(100);
-    recActive = true;
+
+    // Create a placeholder track immediately — visible on timeline right away
     recStartPos = playheadTime;
+    recTakeCount++;
+    recLiveTrack = createTrack('Take ' + recTakeCount, null);
+    recLiveTrack.startOffset = recStartPos;
+    recLiveTrack.color = '#FF2D55';
+    recLiveTrack.isRecording = true;
+
+    recActive = true;
     recStart = Date.now();
+
+    // Start playback so cursor moves during recording
+    if (!isPlaying) play();
+
+    // Transport UI
     document.getElementById('btn-rec').classList.add('rec-active');
     document.getElementById('btn-rec').textContent = '⏹';
     document.getElementById('btn-rec').title = 'Stop Recording';
+
     recTimerInterval = setInterval(() => {
+      if (!recActive) return;
       const s = Math.floor((Date.now()-recStart)/1000);
       document.getElementById('time-display').textContent =
         '● ' + Math.floor(s/60) + ':' + (s%60).toString().padStart(2,'0');
-    }, 200);
+      updateDuration(); // keep timeline expanding while recording
+    }, 500);
+
   } catch(e) {
-    alert('Mic access denied.\n\nAllow microphone in Settings and try again.\n\nError: ' + e.message);
+    alert('Mic access denied.\n\nAllow microphone in Settings.\n\nError: ' + e.message);
   }
+}
+
+function refreshLiveWaveform() {
+  if (!recLiveTrack || !recSamples.length) return;
+  const totalLen = recSamples.reduce((s,c) => s+c.length, 0);
+  const buf = audioCtx.createBuffer(1, totalLen, audioCtx.sampleRate);
+  const chan = buf.getChannelData(0);
+  let pos = 0;
+  for (const chunk of recSamples) { chan.set(chunk, pos); pos += chunk.length; }
+  recLiveTrack.buffer = buf;
+  updateDuration();
+  renderTimeline();
 }
 
 function stopRecording() {
   if (!recActive) return;
-  recorder && recorder.stop();
   recActive = false;
   clearInterval(recTimerInterval);
+
+  // Disconnect ScriptProcessor
+  if (recProcessor) {
+    try { micInputGain.disconnect(recProcessor); } catch(e){}
+    try { recProcessor.disconnect(); } catch(e){}
+    recProcessor = null;
+  }
+
+  // Build final AudioBuffer from all collected samples
+  if (recSamples.length && recLiveTrack) {
+    const totalLen = recSamples.reduce((s,c) => s+c.length, 0);
+    const finalBuf = audioCtx.createBuffer(1, totalLen, audioCtx.sampleRate);
+    const chan = finalBuf.getChannelData(0);
+    let pos = 0;
+    for (const chunk of recSamples) { chan.set(chunk, pos); pos += chunk.length; }
+    recLiveTrack.buffer = finalBuf;
+    recLiveTrack.isRecording = false;
+    recLiveTrack.name = 'Take ' + recTakeCount;
+    applyPresetToTrack(recLiveTrack, currentPreset);
+    updateDuration(); renderTrackList(); renderTimeline();
+  } else if (recLiveTrack) {
+    // Nothing recorded — remove the placeholder track
+    const idx = tracks.indexOf(recLiveTrack);
+    if (idx !== -1) tracks.splice(idx, 1);
+    renderTrackList(); renderTimeline();
+  }
+
+  recSamples = [];
+  recLiveTrack = null;
+
   document.getElementById('btn-rec').classList.remove('rec-active');
   document.getElementById('btn-rec').textContent = '⏺';
   document.getElementById('btn-rec').title = 'Record (R)';
