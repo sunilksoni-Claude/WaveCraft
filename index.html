@@ -1144,7 +1144,10 @@ document.getElementById('tracks-canvas').addEventListener('click', e => {
 document.getElementById('tracks-canvas').addEventListener('dragover', e => e.preventDefault());
 document.getElementById('tracks-canvas').addEventListener('drop', e => {
   e.preventDefault();
-  Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('audio/')).forEach(f => loadAudioFile(f));
+  const audioExts = /\.(mp3|m4a|aac|wav|ogg|flac|aiff?|opus|weba|mp4)$/i;
+  Array.from(e.dataTransfer.files)
+    .filter(f => f.type.startsWith('audio/') || f.type.startsWith('video/mp4') || audioExts.test(f.name))
+    .forEach(f => loadAudioFile(f));
 });
 
 // ─── FILE LOADING ─────────────────────────────────────────────────────────────
@@ -1173,7 +1176,9 @@ function loadAudioFile(file, autoPlay=true) {
 // Add track button → open file picker
 document.getElementById('add-track-btn').addEventListener('click', () => {
   const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = 'audio/*'; inp.multiple = true;
+  inp.type = 'file';
+  inp.accept = '.mp3,.m4a,.aac,.wav,.ogg,.flac,.aiff,.aif,.opus,.weba,.mp4,audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/ogg,audio/flac,audio/x-flac,audio/aiff,audio/x-aiff,audio/webm,audio/opus';
+  inp.multiple = true;
   inp.onchange = e => Array.from(e.target.files).forEach(f => loadAudioFile(f));
   inp.click();
 });
