@@ -321,72 +321,6 @@ canvas.knob{cursor:ns-resize;display:block}
 #export-btn:hover{background:linear-gradient(135deg,rgba(0,212,255,0.25),rgba(123,47,255,0.25));box-shadow:0 0 16px rgba(0,212,255,0.2)}
 
 /* ── RECORD PANEL (slide-up drawer) ── */
-#rec-panel{
-  position:fixed;bottom:0;left:0;right:0;z-index:500;
-  background:rgba(5,8,22,0.97);
-  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
-  border-top:2px solid rgba(255,107,53,0.5);
-  border-radius:16px 16px 0 0;
-  transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
-  padding:16px 16px calc(16px + env(safe-area-inset-bottom));
-  max-height:85vh;overflow-y:auto;
-}
-#rec-panel.open{transform:translateY(0)}
-/* Drag handle indicator */
-#rec-panel::before{content:'';display:block;width:40px;height:4px;border-radius:2px;
-  background:rgba(255,255,255,0.2);margin:0 auto 12px;}
-#rec-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-#rec-panel-header h3{font-size:14px;font-weight:700;color:var(--accent-warm);letter-spacing:2px;text-transform:uppercase}
-#rec-close{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;
-  color:var(--text-secondary);padding:6px 14px;cursor:pointer;font-size:12px;font-weight:600;min-height:36px}
-#rec-body{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
-.rec-col{display:flex;flex-direction:column;gap:10px;min-width:160px}
-.rec-label{font-size:10px;color:var(--text-dim);letter-spacing:1px;font-weight:600;text-transform:uppercase}
-#mic-select{
-  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
-  border-radius:6px;color:var(--text-primary);font-size:12px;padding:6px 10px;
-  outline:none;cursor:pointer;min-width:180px;
-}
-.rec-gain-row{display:flex;align-items:center;gap:8px;font-size:11px}
-input[type=range].rec-slider{
-  -webkit-appearance:none;appearance:none;flex:1;height:4px;
-  background:rgba(255,255,255,0.1);border-radius:2px;outline:none;cursor:pointer;
-}
-input[type=range].rec-slider::-webkit-slider-thumb{
-  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
-  background:var(--accent-warm);cursor:pointer;
-}
-.rec-gain-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent-warm);min-width:44px}
-#vu-canvas-rec{border-radius:6px;border:1px solid rgba(255,255,255,0.06)}
-.preset-row{display:flex;align-items:center;gap:8px}
-#preset-select{
-  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
-  border-radius:6px;color:var(--text-primary);font-size:12px;padding:6px 10px;
-  outline:none;cursor:pointer;
-}
-.rec-btns{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
-.rec-action-btn{
-  padding:12px 20px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
-  font-family:'Inter',sans-serif;transition:all 0.2s;border:1.5px solid;
-  min-height:44px;min-width:70px;text-align:center;
-}
-#btn-arm{background:rgba(255,107,53,0.12);border-color:rgba(255,107,53,0.5);color:var(--accent-warm)}
-#btn-arm:hover,#btn-arm.armed{background:rgba(255,107,53,0.25);border-color:rgba(255,107,53,0.8);box-shadow:0 0 14px rgba(255,107,53,0.4);color:var(--accent-warm)}
-#btn-rec-go{background:rgba(255,45,85,0.1);border-color:rgba(255,45,85,0.3);color:#FF2D55;opacity:0.4;pointer-events:none}
-#btn-rec-go.armed{opacity:1;pointer-events:auto}
-#btn-rec-go.recording{background:rgba(255,45,85,0.25);border-color:#FF2D55;box-shadow:0 0 20px rgba(255,45,85,0.5);animation:recPulse 1s infinite;color:#FF2D55}
-#btn-stop-save{background:rgba(0,212,255,0.08);border-color:rgba(0,212,255,0.3);color:var(--accent-primary);opacity:0.4;pointer-events:none}
-#btn-stop-save.armed{opacity:1;pointer-events:auto}
-#rec-timer{font-family:'JetBrains Mono',monospace;font-size:22px;color:#FF2D55;min-width:70px;text-align:center;letter-spacing:2px}
-#rec-arm-status{font-size:11px;text-align:center;padding:5px 10px;border-radius:6px;margin-bottom:4px;
-  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-dim);letter-spacing:0.5px;}
-.tips-section{
-  margin-top:8px;padding:10px;border-radius:8px;
-  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
-  font-size:11px;color:var(--text-secondary);line-height:1.6;max-width:280px;
-}
-.tips-section summary{cursor:pointer;color:var(--text-accent);font-weight:600;margin-bottom:6px;list-style:none}
-.tips-section summary::-webkit-details-marker{display:none}
 
 /* ── SPLASH ── */
 #splash{
@@ -515,6 +449,7 @@ input[type=range].rec-slider::-webkit-slider-thumb{
     <button class="glass-control t-btn" id="btn-return" title="Return to start (Home)">⏮</button>
     <button class="glass-control t-btn" id="btn-back" title="Back 5s">⏪</button>
     <button class="glass-control t-btn" id="btn-play" title="Play / Pause (Space)">▶</button>
+    <button class="glass-control t-btn" id="btn-stop" title="Stop (■)">■</button>
     <button class="glass-control t-btn" id="btn-fwd" title="Forward 5s">⏩</button>
     <button class="glass-control t-btn danger" id="btn-rec" title="Record (R)">⏺</button>
   </div>
@@ -646,64 +581,6 @@ input[type=range].rec-slider::-webkit-slider-thumb{
 </div>
 
 <!-- RECORD PANEL -->
-<div id="rec-panel">
-  <div id="rec-panel-header">
-    <h3>🎙 RECORD</h3>
-    <button id="rec-close">✕ Close</button>
-  </div>
-  <div id="rec-body">
-    <div class="rec-col" style="flex:1">
-      <div class="rec-label">Input Device</div>
-      <select id="mic-select"><option>Default Microphone</option></select>
-      <div class="rec-label" style="margin-top:4px">Input Gain</div>
-      <div class="rec-gain-row">
-        <input type="range" class="rec-slider" id="rec-gain-slider" min="0" max="4" step="0.05" value="1.2">
-        <span class="rec-gain-val" id="rec-gain-val">+1.6 dB</span>
-      </div>
-      <div class="rec-label">Monitor <span style="font-size:9px;color:var(--text-dim)">(use headphones)</span></div>
-      <div class="rec-gain-row">
-        <input type="range" class="rec-slider" id="monitor-slider" min="0" max="1" step="0.05" value="0">
-        <span class="rec-gain-val" id="monitor-val">OFF</span>
-      </div>
-      <div class="preset-row">
-        <span class="rec-label">Preset</span>
-        <select id="preset-select">
-          <option value="bansuri">🪈 Bansuri</option>
-          <option value="bansuri-concert">🪈 Bansuri Concert</option>
-          <option value="bansuri-intimate">🪈 Bansuri Intimate</option>
-          <option value="bansuri-temple">🪈 Bansuri Temple</option>
-          <option value="bansuri-dry">🪈 Bansuri Dry</option>
-          <option value="vocal">🎤 Vocal</option>
-          <option value="flat">⬜ Flat</option>
-        </select>
-      </div>
-    </div>
-    <div class="rec-col" style="align-items:center;gap:8px">
-      <div class="rec-label">Input Level</div>
-      <canvas id="vu-canvas-rec" width="80" height="100"></canvas>
-      <div id="rec-arm-status">Requesting mic…</div>
-      <div id="rec-timer">0:00</div>
-      <div class="rec-btns">
-        <button class="rec-action-btn" id="btn-arm">ARM</button>
-        <button class="rec-action-btn" id="btn-rec-go">● REC</button>
-        <button class="rec-action-btn" id="btn-stop-save">■ SAVE</button>
-      </div>
-    </div>
-    <div class="rec-col">
-      <details class="tips-section">
-        <summary>💡 Bansuri Recording Tips</summary>
-        <div style="margin-top:6px">
-          • Place mic 15–30cm from embouchure hole, slightly off-axis<br>
-          • Aim for peaks around –12 dB on input meter<br>
-          • echoCancellation &amp; noiseSuppression are OFF — tone preserved<br>
-          • Try 2.5 kHz presence band to taste for your instrument<br>
-          • Lower delay mix to 8–10% with tanpura/tabla backing
-        </div>
-      </details>
-    </div>
-  </div>
-</div>
-
 <!-- EXPORT MODAL -->
 <div id="export-modal">
   <div id="export-box">
@@ -1314,7 +1191,16 @@ document.getElementById('btn-fwd').addEventListener('click', () => {
   playheadTime = Math.min(totalDuration, playheadTime + 5);
   if (wasPlaying) play(); else { renderTimeline(); updateTimeDisplay(); }
 });
-document.getElementById('btn-rec').addEventListener('click', () => openRecPanel());
+document.getElementById('btn-stop').addEventListener('click', () => {
+  stopRecording();
+  pause();
+});
+document.getElementById('btn-rec').addEventListener('click', async () => {
+  if (!audioCtx) initAudio();
+  if (recActive) { stopRecording(); return; }
+  if (audioCtx.state !== 'running') await audioCtx.resume();
+  await startRecording();
+});
 
 // BPM drag
 let bpmDragStart = null, bpmStart = 120;
@@ -1338,7 +1224,7 @@ document.addEventListener('touchend', () => { bpmDragStart=null; });
 document.addEventListener('keydown', e => {
   if (e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
   if (e.code==='Space') { e.preventDefault(); if (!audioCtx) initAudio(); if(audioCtx.state!=='running')audioCtx.resume().then(()=>togglePlay()); else togglePlay(); }
-  if (e.code==='KeyR') openRecPanel();
+  if (e.code==='KeyR') { if(recActive) stopRecording(); else { if(!audioCtx) initAudio(); audioCtx.resume().then(()=>startRecording()); } }
   if (e.code==='Home') stop();
   if (e.code==='ArrowLeft') { const wp=isPlaying; if(wp)pause(); playheadTime=Math.max(0,playheadTime-1); if(wp)play(); else {renderTimeline();updateTimeDisplay();} }
   if (e.code==='ArrowRight') { const wp=isPlaying; if(wp)pause(); playheadTime=Math.min(totalDuration,playheadTime+1); if(wp)play(); else {renderTimeline();updateTimeDisplay();} }
@@ -1921,180 +1807,73 @@ function drawMasterVU() {
 }
 
 // ─── RECORDING MODULE ────────────────────────────────────────────────────────
-let micStream=null, micSource=null, micInputGain=null, micAnalyser=null, monitorGainNode=null;
+let micStream=null, micSource=null, micInputGain=null;
 let recorder=null, recTimerInterval=null, recStart=null;
-let recArmed=false, recActive=false;
+let recActive=false, recTakeCount=0, recStartPos=0;
 
-function setRecStatus(msg, color) {
-  const el = document.getElementById('rec-arm-status');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.color = color || 'var(--text-dim)';
-  el.style.borderColor = color ? color + '44' : 'rgba(255,255,255,0.08)';
-}
-
-function openRecPanel() {
-  document.getElementById('rec-panel').classList.add('open');
-  loadMicDevices();
-  // Auto-arm immediately so mic permission is requested on panel open
-  if (!recArmed && !recActive) {
-    setRecStatus('Requesting mic access…', 'var(--accent-primary)');
-    setTimeout(() => armMic(), 250);
-  }
-}
-document.getElementById('rec-close').addEventListener('click',()=>{ stopMic(); setRecStatus('Requesting mic…'); document.getElementById('rec-panel').classList.remove('open'); });
-
-async function loadMicDevices() {
-  try {
-    const devs=await navigator.mediaDevices.enumerateDevices();
-    const sel=document.getElementById('mic-select');
-    sel.innerHTML='';
-    devs.filter(d=>d.kind==='audioinput').forEach(d=>{
-      const opt=document.createElement('option'); opt.value=d.deviceId; opt.textContent=d.label||'Microphone'; sel.appendChild(opt);
-    });
-    if(!sel.options.length){ const opt=document.createElement('option'); opt.textContent='Default Microphone'; sel.appendChild(opt); }
-  } catch(e){}
-}
-
-async function armMic() {
+async function startRecording() {
+  if (recActive) return;
   if (!audioCtx) initAudio();
-  if (audioCtx.state !== 'running') {
-    try { await audioCtx.resume(); } catch(e) {}
-  }
+  if (audioCtx.state !== 'running') { try { await audioCtx.resume(); } catch(e){} }
   try {
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio:{ channelCount:1, echoCancellation:false, noiseSuppression:false, autoGainControl:false }
-    });
-    micSource = audioCtx.createMediaStreamSource(micStream);
-    micInputGain = audioCtx.createGain();
-    micInputGain.gain.value = +document.getElementById('rec-gain-slider').value;
-    micAnalyser = audioCtx.createAnalyser(); micAnalyser.fftSize=2048;
-    monitorGainNode = audioCtx.createGain(); monitorGainNode.gain.value=0;
-    micSource.connect(micInputGain);
-    micInputGain.connect(micAnalyser);
-    micInputGain.connect(monitorGainNode);
-    monitorGainNode.connect(audioCtx.destination);
-    drawVUMeterRec();
-    recArmed=true;
-    setRecStatus('🎙 Mic armed — tap ● REC to record', 'var(--accent-green)');
-    document.getElementById('btn-arm').classList.add('armed');
-    document.getElementById('btn-arm').textContent = 'ARMED';
-    document.getElementById('btn-rec-go').classList.add('armed');
-    document.getElementById('btn-stop-save').classList.add('armed');
-  } catch(e){
-    setRecStatus('✗ Mic denied — check Settings → Privacy → Microphone', '#FF2D55');
-    alert('Microphone access failed.\n\nTo fix: Settings → Privacy & Security → Microphone → enable for Safari (or WaveCraft).\n\nError: '+e.message);
-  }
-}
-
-function drawVUMeterRec() {
-  const canvas=document.getElementById('vu-canvas-rec');
-  const ctx=canvas.getContext('2d');
-  const W=canvas.width, H=canvas.height;
-  function draw(){
-    if(!micAnalyser){ctx.clearRect(0,0,W,H);return;}
-    const data=new Uint8Array(micAnalyser.frequencyBinCount);
-    micAnalyser.getByteTimeDomainData(data);
-    let sum=0; data.forEach(v=>{ const s=(v-128)/128; sum+=s*s; });
-    const rms=Math.sqrt(sum/data.length);
-    const db=20*Math.log10(rms||0.0001);
-    const norm=Math.max(0,Math.min(1,(db+60)/60));
-    ctx.clearRect(0,0,W,H);
-    const segs=16;
-    const segH=Math.floor(H/segs)-1;
-    for(let i=0;i<segs;i++){
-      const idx=segs-1-i;
-      const pct=idx/segs;
-      const lit=pct<norm;
-      const x=0, y=i*(segH+1), w=W, h=segH;
-      if(lit){ if(pct<0.7)ctx.fillStyle='#00FF88'; else if(pct<0.85)ctx.fillStyle='#00D4FF'; else if(pct<0.95)ctx.fillStyle='#FF6B35'; else ctx.fillStyle='#FF2D55'; }
-      else ctx.fillStyle='rgba(255,255,255,0.06)';
-      ctx.fillRect(x,y,w,h);
-    }
-    requestAnimationFrame(draw);
-  }
-  draw();
-}
-
-function stopMic() {
-  if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
-  if(monitorGainNode){ try{monitorGainNode.disconnect();}catch(e){} monitorGainNode=null; }
-  micAnalyser=null; recArmed=false;
-  document.getElementById('btn-arm').classList.remove('armed');
-  document.getElementById('btn-arm').textContent = 'ARM';
-  document.getElementById('btn-rec-go').classList.remove('armed');
-  document.getElementById('btn-stop-save').classList.remove('armed');
-}
-
-document.getElementById('btn-arm').addEventListener('click',async()=>{
-  if(recArmed){ stopMic(); return; }
-  await armMic();
-  applyPreset(document.getElementById('preset-select').value);
-});
-
-document.getElementById('btn-rec-go').addEventListener('click',()=>{
-  if(!recArmed||recActive)return;
-  const dest=audioCtx.createMediaStreamDestination();
-  micInputGain.connect(dest);
-  const mimeType=['audio/webm;codecs=opus','audio/mp4','audio/ogg'].find(t=>MediaRecorder.isTypeSupported(t))||'';
-  recorder=new MediaRecorder(dest.stream,{mimeType});
-  const chunks=[];
-  recorder.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data)};
-  recorder.onstop=async()=>{
-    const blob=new Blob(chunks,{type:recorder.mimeType});
-    const ab=await blob.arrayBuffer();
-    try{
-      const buf=await audioCtx.decodeAudioData(ab);
-      const latency=(audioCtx.baseLatency||0)+(audioCtx.outputLatency||0);
-      showDialog('Name your recording','Bansuri Take '+(tracks.length+1),name=>{
-        const t=createTrack(name,buf);
-        t.startOffset=Math.max(0,playheadTime-latency);
-        applyPresetToTrack(t,document.getElementById('preset-select').value);
-        updateDuration(); renderTrackList(); renderTimeline();
+    if (!micStream) {
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio:{ channelCount:1, echoCancellation:false, noiseSuppression:false, autoGainControl:false }
       });
-    }catch(e){alert('Could not decode recording');}
-  };
-  recorder.start(100);
-  recActive=true;
-  recStart=Date.now();
-  recTimerInterval=setInterval(()=>{
-    const s=Math.floor((Date.now()-recStart)/1000);
-    document.getElementById('rec-timer').textContent=Math.floor(s/60)+':'+(s%60).toString().padStart(2,'0');
-  },500);
-  setRecStatus('● Recording…', '#FF2D55');
-  document.getElementById('btn-rec-go').classList.add('recording');
-  document.getElementById('btn-rec').classList.add('rec-active');
-});
-
-document.getElementById('btn-stop-save').addEventListener('click',()=>{
-  if(!recActive)return;
-  recorder&&recorder.stop();
-  recActive=false;
-  clearInterval(recTimerInterval);
-  document.getElementById('rec-timer').textContent='0:00';
-  setRecStatus('✓ Saved to new track', 'var(--accent-green)');
-  document.getElementById('btn-rec-go').classList.remove('recording');
-  document.getElementById('btn-rec').classList.remove('rec-active');
-});
-
-document.getElementById('rec-gain-slider').addEventListener('input',e=>{
-  if(micInputGain) micInputGain.gain.value=+e.target.value;
-  const db=(20*Math.log10(+e.target.value)).toFixed(1);
-  document.getElementById('rec-gain-val').textContent=db+' dB';
-});
-document.getElementById('monitor-slider').addEventListener('input',e=>{
-  const v=+e.target.value;
-  if(monitorGainNode) monitorGainNode.gain.value=v;
-  document.getElementById('monitor-val').textContent=v<0.01?'OFF':(v*100).toFixed(0)+'%';
-});
-
-function applyPreset(key) {
-  const preset=PRESETS[key]||PRESETS['bansuri'];
-  if(preset.gain&&micInputGain) micInputGain.gain.value=preset.gain;
-  document.getElementById('rec-gain-slider').value=preset.gain||1;
-  const db=(20*Math.log10(preset.gain||1)).toFixed(1);
-  document.getElementById('rec-gain-val').textContent=db+' dB';
+      micSource = audioCtx.createMediaStreamSource(micStream);
+      micInputGain = audioCtx.createGain();
+      micInputGain.gain.value = 1.2;
+      micSource.connect(micInputGain);
+    }
+    const dest = audioCtx.createMediaStreamDestination();
+    micInputGain.connect(dest);
+    const mimeType = ['audio/webm;codecs=opus','audio/mp4','audio/ogg']
+      .find(t => MediaRecorder.isTypeSupported(t)) || '';
+    recorder = new MediaRecorder(dest.stream, {mimeType});
+    const chunks = [];
+    recorder.ondataavailable = e => { if (e.data.size>0) chunks.push(e.data); };
+    recorder.onstop = async () => {
+      try { micInputGain.disconnect(dest); } catch(e){}
+      if (!chunks.length) return;
+      const blob = new Blob(chunks, {type: recorder.mimeType || 'audio/webm'});
+      try {
+        const ab = await blob.arrayBuffer();
+        const buf = await audioCtx.decodeAudioData(ab);
+        recTakeCount++;
+        const t = createTrack('Take ' + recTakeCount, buf);
+        t.startOffset = Math.max(0, recStartPos);
+        applyPresetToTrack(t, 'bansuri');
+        updateDuration(); renderTrackList(); renderTimeline();
+      } catch(err) { alert('Could not save recording: ' + err.message); }
+    };
+    recorder.start(100);
+    recActive = true;
+    recStartPos = playheadTime;
+    recStart = Date.now();
+    document.getElementById('btn-rec').classList.add('rec-active');
+    document.getElementById('btn-rec').textContent = '⏹';
+    document.getElementById('btn-rec').title = 'Stop Recording';
+    recTimerInterval = setInterval(() => {
+      const s = Math.floor((Date.now()-recStart)/1000);
+      document.getElementById('time-display').textContent =
+        '● ' + Math.floor(s/60) + ':' + (s%60).toString().padStart(2,'0');
+    }, 200);
+  } catch(e) {
+    alert('Mic access denied.\n\nAllow microphone in Settings and try again.\n\nError: ' + e.message);
+  }
 }
+
+function stopRecording() {
+  if (!recActive) return;
+  recorder && recorder.stop();
+  recActive = false;
+  clearInterval(recTimerInterval);
+  document.getElementById('btn-rec').classList.remove('rec-active');
+  document.getElementById('btn-rec').textContent = '⏺';
+  document.getElementById('btn-rec').title = 'Record (R)';
+  updateTimeDisplay();
+}
+
 
 function applyPresetToTrack(track, key) {
   const preset=PRESETS[key]||PRESETS['bansuri'];
@@ -2138,10 +1917,6 @@ function applyPresetToTrack(track, key) {
     track.delayMixGain.gain.value=track.effects.delay.enabled?d.mix||0:0;
   }
 }
-
-document.getElementById('preset-select').addEventListener('change',e=>{
-  if(recArmed)applyPreset(e.target.value);
-});
 
 // ─── EXPORT ──────────────────────────────────────────────────────────────────
 document.getElementById('export-btn').addEventListener('click', async () => {
