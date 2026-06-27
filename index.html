@@ -91,7 +91,8 @@ body{
 
 /* ── HEADER ── */
 #header{
-  height:56px;padding:0 16px;
+  height:calc(56px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 16px 0;
   display:flex;align-items:center;gap:12px;flex-shrink:0;
   border-bottom:1px solid rgba(255,255,255,0.08);
   background:rgba(5,8,16,0.6);
@@ -136,22 +137,32 @@ body{
 .track-header{height:44px;padding:0 8px;display:flex;align-items:center;gap:6px;flex-shrink:0;
   border-bottom:1px solid rgba(255,255,255,0.04);font-size:11px;font-weight:600;color:var(--text-secondary);letter-spacing:1px}
 .track-slot{
-  height:80px;flex-shrink:0;
+  height:88px;flex-shrink:0;
   border-bottom:1px solid rgba(255,255,255,0.04);
-  padding:8px;display:flex;flex-direction:column;gap:4px;
+  padding:7px 8px;display:flex;flex-direction:column;gap:4px;
   cursor:pointer;transition:background 0.2s;
 }
 .track-slot:hover{background:rgba(255,255,255,0.03)}
 .track-slot.selected{background:rgba(0,212,255,0.05);border-left:2px solid var(--accent-primary)}
-.track-name-row{display:flex;align-items:center;gap:6px}
+.track-name-row{display:flex;align-items:center;gap:5px}
 .track-color-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .track-name-input{background:transparent;border:none;outline:none;color:var(--text-primary);font-size:12px;font-weight:500;width:100%;font-family:'Inter',sans-serif}
-.track-btns{display:flex;gap:4px}
-.track-btn{width:24px;height:24px;border-radius:5px;font-size:10px;font-weight:600;border:none;outline:none;
-  background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);color:var(--text-secondary);cursor:pointer;transition:all 0.15s}
+.track-btns{display:flex;gap:4px;align-items:center}
+.track-btn{width:26px;height:26px;border-radius:5px;font-size:10px;font-weight:600;border:none;outline:none;
+  background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);color:var(--text-secondary);cursor:pointer;transition:all 0.15s;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .track-btn:hover{background:rgba(255,255,255,0.14);color:var(--text-primary)}
 .track-btn.muted{background:rgba(255,107,53,0.2);border-color:rgba(255,107,53,0.5);color:var(--accent-warm)}
 .track-btn.soloed{background:rgba(0,212,255,0.2);border-color:rgba(0,212,255,0.5);color:var(--accent-primary)}
+/* Per-track play button */
+.track-play-btn{
+  width:32px;height:32px;border-radius:50%;font-size:11px;border:none;outline:none;flex-shrink:0;
+  background:rgba(0,212,255,0.12);border:1.5px solid rgba(0,212,255,0.35);
+  color:var(--accent-primary);cursor:pointer;transition:all 0.2s;
+  display:flex;align-items:center;justify-content:center;
+}
+.track-play-btn:hover{background:rgba(0,212,255,0.25);box-shadow:0 0 10px rgba(0,212,255,0.3)}
+.track-play-btn.playing{background:rgba(0,255,136,0.15);border-color:rgba(0,255,136,0.5);color:var(--accent-green);box-shadow:0 0 10px rgba(0,255,136,0.3)}
 .track-vol-row{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-dim)}
 input[type=range].track-vol{
   -webkit-appearance:none;appearance:none;flex:1;height:3px;
@@ -190,11 +201,34 @@ input[type=range].track-pan::-webkit-slider-thumb{
 
 /* Effects rack */
 #effects-rack{
-  height:260px;display:flex;flex-direction:column;
+  display:flex;flex-direction:column;
   background:rgba(0,0,0,0.25);
   border-bottom:1px solid rgba(255,255,255,0.06);
+  transition:height 0.3s cubic-bezier(0.4,0,0.2,1);
+  height:300px;overflow:hidden;
 }
-#fx-tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+#effects-rack.collapsed{height:40px}
+
+/* Rack handle / toggle bar */
+#fx-rack-handle{
+  height:40px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 12px;cursor:pointer;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  background:rgba(0,0,0,0.15);
+  user-select:none;-webkit-user-select:none;
+  touch-action:manipulation;
+}
+#fx-rack-handle:hover{background:rgba(255,255,255,0.03)}
+#fx-rack-handle:active{background:rgba(0,212,255,0.05)}
+.fx-handle-left{display:flex;align-items:center;gap:8px}
+.fx-handle-label{font-size:10px;font-weight:600;color:var(--text-secondary);letter-spacing:1.5px;text-transform:uppercase}
+.fx-active-badge{font-size:10px;color:var(--accent-primary);background:rgba(0,212,255,0.12);
+  border:1px solid rgba(0,212,255,0.25);border-radius:4px;padding:1px 6px;font-family:'JetBrains Mono',monospace}
+.fx-handle-chevron{font-size:14px;color:var(--text-secondary);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1)}
+#effects-rack:not(.collapsed) .fx-handle-chevron{transform:rotate(180deg)}
+
+#fx-tabs{display:flex;gap:2px;padding:6px 12px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
 .fx-tab{
   padding:6px 14px;border-radius:6px 6px 0 0;font-size:12px;font-weight:500;
   cursor:pointer;border:none;background:transparent;color:var(--text-secondary);
@@ -225,8 +259,24 @@ canvas.knob{cursor:ns-resize;display:block}
 .fx-toggle.on{border-color:rgba(0,212,255,0.4);color:var(--accent-primary);background:rgba(0,212,255,0.06)}
 .fx-toggle-dot{width:8px;height:8px;border-radius:50%;background:var(--text-dim);transition:all 0.2s}
 .fx-toggle.on .fx-toggle-dot{background:var(--accent-primary);box-shadow:0 0 6px rgba(0,212,255,0.8)}
-/* EQ canvas */
-#eq-canvas{border-radius:8px;border:1px solid rgba(255,255,255,0.08)}
+/* EQ canvas — BandLab style */
+#eq-canvas{border-bottom:1px solid rgba(255,255,255,0.06);touch-action:none}
+.eq-bottom-bar{
+  height:40px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 12px;background:rgba(0,0,0,0.2);
+  border-top:1px solid rgba(255,255,255,0.05);
+}
+.eq-node-info{display:flex;align-items:center;gap:8px}
+.eq-info-lbl{font-size:9px;font-weight:700;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase}
+.eq-info-val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-accent);min-width:44px}
+.eq-actions{display:flex;align-items:center;gap:10px}
+.eq-preset-btn{
+  padding:4px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
+  color:var(--text-secondary);font-family:'Inter',sans-serif;transition:all 0.2s;letter-spacing:1px;
+}
+.eq-preset-btn:hover{background:rgba(255,255,255,0.12);color:var(--text-primary)}
 /* Compressor GR meter */
 .gr-meter-wrap{width:16px;height:100px;background:rgba(0,0,0,0.4);border-radius:4px;border:1px solid rgba(255,255,255,0.08);overflow:hidden;position:relative}
 .gr-meter-fill{position:absolute;bottom:0;width:100%;background:linear-gradient(to top,#FF6B35,#FFB347);border-radius:0 0 3px 3px;transition:height 0.05s}
@@ -241,7 +291,9 @@ canvas.knob{cursor:ns-resize;display:block}
 
 /* ── MASTER BUS ── */
 #master-bus{
-  height:52px;display:flex;align-items:center;gap:12px;padding:0 16px;
+  height:calc(52px + env(safe-area-inset-bottom));
+  display:flex;align-items:center;gap:12px;
+  padding:0 16px env(safe-area-inset-bottom);
   background:rgba(0,0,0,0.3);flex-shrink:0;
 }
 #master-bus .label{font-size:10px;color:var(--text-dim);letter-spacing:1px;font-weight:600;text-transform:uppercase;white-space:nowrap}
@@ -268,20 +320,25 @@ canvas.knob{cursor:ns-resize;display:block}
 
 /* ── RECORD PANEL (slide-up drawer) ── */
 #rec-panel{
-  position:fixed;bottom:0;left:0;right:0;z-index:200;
-  background:rgba(5,8,22,0.95);
+  position:fixed;bottom:0;left:0;right:0;z-index:500;
+  background:rgba(5,8,22,0.97);
   backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
-  border-top:1px solid rgba(255,107,53,0.3);
+  border-top:2px solid rgba(255,107,53,0.5);
+  border-radius:16px 16px 0 0;
   transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
-  padding:16px;
+  padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+  max-height:85vh;overflow-y:auto;
 }
 #rec-panel.open{transform:translateY(0)}
-#rec-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-#rec-panel-header h3{font-size:13px;font-weight:600;color:var(--accent-warm);letter-spacing:2px;text-transform:uppercase}
-#rec-close{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;
-  color:var(--text-secondary);padding:4px 10px;cursor:pointer;font-size:12px}
-#rec-body{display:flex;gap:16px;align-items:flex-start}
-.rec-col{display:flex;flex-direction:column;gap:10px}
+/* Drag handle indicator */
+#rec-panel::before{content:'';display:block;width:40px;height:4px;border-radius:2px;
+  background:rgba(255,255,255,0.2);margin:0 auto 12px;}
+#rec-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+#rec-panel-header h3{font-size:14px;font-weight:700;color:var(--accent-warm);letter-spacing:2px;text-transform:uppercase}
+#rec-close{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;
+  color:var(--text-secondary);padding:6px 14px;cursor:pointer;font-size:12px;font-weight:600;min-height:36px}
+#rec-body{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.rec-col{display:flex;flex-direction:column;gap:10px;min-width:160px}
 .rec-label{font-size:10px;color:var(--text-dim);letter-spacing:1px;font-weight:600;text-transform:uppercase}
 #mic-select{
   background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
@@ -305,19 +362,20 @@ input[type=range].rec-slider::-webkit-slider-thumb{
   border-radius:6px;color:var(--text-primary);font-size:12px;padding:6px 10px;
   outline:none;cursor:pointer;
 }
-.rec-btns{display:flex;gap:8px;margin-top:4px}
+.rec-btns{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
 .rec-action-btn{
-  padding:10px 18px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;
-  font-family:'Inter',sans-serif;transition:all 0.2s;border:1px solid;
+  padding:12px 20px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
+  font-family:'Inter',sans-serif;transition:all 0.2s;border:1.5px solid;
+  min-height:44px;min-width:70px;text-align:center;
 }
-#btn-arm{background:rgba(255,107,53,0.1);border-color:rgba(255,107,53,0.4);color:var(--accent-warm)}
-#btn-arm:hover,#btn-arm.armed{background:rgba(255,107,53,0.2);border-color:rgba(255,107,53,0.7);box-shadow:0 0 12px rgba(255,107,53,0.3)}
-#btn-rec-go{background:rgba(255,45,85,0.1);border-color:rgba(255,45,85,0.3);color:#FF2D55;opacity:0.5;pointer-events:none}
+#btn-arm{background:rgba(255,107,53,0.12);border-color:rgba(255,107,53,0.5);color:var(--accent-warm)}
+#btn-arm:hover,#btn-arm.armed{background:rgba(255,107,53,0.25);border-color:rgba(255,107,53,0.8);box-shadow:0 0 14px rgba(255,107,53,0.4);color:var(--accent-warm)}
+#btn-rec-go{background:rgba(255,45,85,0.1);border-color:rgba(255,45,85,0.3);color:#FF2D55;opacity:0.4;pointer-events:none}
 #btn-rec-go.armed{opacity:1;pointer-events:auto}
-#btn-rec-go.recording{background:rgba(255,45,85,0.2);border-color:#FF2D55;box-shadow:0 0 16px rgba(255,45,85,0.4);animation:recPulse 1s infinite}
-#btn-stop-save{background:rgba(0,212,255,0.08);border-color:rgba(0,212,255,0.3);color:var(--accent-primary);opacity:0.5;pointer-events:none}
+#btn-rec-go.recording{background:rgba(255,45,85,0.25);border-color:#FF2D55;box-shadow:0 0 20px rgba(255,45,85,0.5);animation:recPulse 1s infinite;color:#FF2D55}
+#btn-stop-save{background:rgba(0,212,255,0.08);border-color:rgba(0,212,255,0.3);color:var(--accent-primary);opacity:0.4;pointer-events:none}
 #btn-stop-save.armed{opacity:1;pointer-events:auto}
-#rec-timer{font-family:'JetBrains Mono',monospace;font-size:20px;color:#FF2D55;min-width:70px;text-align:center}
+#rec-timer{font-family:'JetBrains Mono',monospace;font-size:22px;color:#FF2D55;min-width:70px;text-align:center;letter-spacing:2px}
 .tips-section{
   margin-top:8px;padding:10px;border-radius:8px;
   background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
@@ -368,7 +426,7 @@ input[type=range].rec-slider::-webkit-slider-thumb{
   #project-name{width:100px}
   #bpm-wrap{display:none}
   .fx-panel{flex-wrap:wrap}
-  #effects-rack{height:220px}
+  #effects-rack{height:260px}
 }
 </style>
 </head>
@@ -427,7 +485,14 @@ input[type=range].rec-slider::-webkit-slider-thumb{
 <!-- BOTTOM PANELS -->
 <div id="bottom-panels">
   <!-- Effects Rack -->
-  <div id="effects-rack">
+  <div id="effects-rack" class="collapsed">
+    <div id="fx-rack-handle">
+      <div class="fx-handle-left">
+        <span class="fx-handle-label">⚡ FX Rack</span>
+        <span class="fx-active-badge" id="fx-active-label">EQ</span>
+      </div>
+      <span class="fx-handle-chevron">▲</span>
+    </div>
     <div id="fx-tabs">
       <button class="fx-tab active" data-tab="eq">EQ</button>
       <button class="fx-tab" data-tab="comp">Compressor</button>
@@ -437,16 +502,22 @@ input[type=range].rec-slider::-webkit-slider-thumb{
       <button class="fx-tab" data-tab="chorus">Chorus</button>
     </div>
     <div id="fx-panels">
-      <!-- EQ Panel -->
-      <div class="fx-panel active" id="panel-eq">
-        <div class="fx-section">
-          <canvas id="eq-canvas" width="320" height="160"></canvas>
-        </div>
-        <div class="fx-section" style="flex-direction:row;align-items:flex-end;gap:8px;flex-wrap:wrap">
-          <!-- EQ knobs generated by JS -->
-        </div>
-        <div class="fx-section" style="margin-left:auto;justify-content:center">
-          <div class="fx-toggle" id="eq-toggle"><span class="fx-toggle-dot"></span>EQ ON</div>
+      <!-- EQ Panel — BandLab-style interactive canvas -->
+      <div class="fx-panel active" id="panel-eq" style="padding:0;flex-direction:column;gap:0">
+        <canvas id="eq-canvas" style="flex:1;width:100%;display:block;cursor:crosshair"></canvas>
+        <div class="eq-bottom-bar">
+          <div class="eq-node-info">
+            <span class="eq-info-lbl">BAND</span>
+            <span id="eq-sel-label" class="eq-info-val" style="color:#fff">—</span>
+            <span class="eq-info-lbl">FREQ</span>
+            <span id="eq-sel-freq" class="eq-info-val">—</span>
+            <span class="eq-info-lbl">GAIN</span>
+            <span id="eq-sel-gain" class="eq-info-val">—</span>
+          </div>
+          <div class="eq-actions">
+            <button id="eq-flat-btn" class="eq-preset-btn">FLAT</button>
+            <div class="fx-toggle" id="eq-toggle"><span class="fx-toggle-dot"></span>ON</div>
+          </div>
         </div>
       </div>
       <!-- Compressor Panel -->
@@ -616,14 +687,11 @@ const PRESETS = {
   'bansuri': {
     name:'Bansuri', gain:1.2,
     eq:[
-      {type:'highpass',frequency:120,gain:0,Q:0.7},
-      {type:'peaking',frequency:250,gain:-2.5,Q:1.2},
-      {type:'peaking',frequency:800,gain:1.5,Q:0.8},
-      {type:'peaking',frequency:2500,gain:2.0,Q:1.0},
-      {type:'peaking',frequency:5000,gain:1.5,Q:1.2},
-      {type:'peaking',frequency:8000,gain:1.0,Q:1.5},
-      {type:'highshelf',frequency:12000,gain:-1.0,Q:0.7},
-      {type:'lowpass',frequency:18000,gain:0,Q:0.7},
+      {type:'lowshelf', frequency:120,  gain:-2.0, Q:0.7},  // LOW: remove rumble
+      {type:'peaking',  frequency:250,  gain:-2.5, Q:1.2},  // LO-M: reduce muddiness
+      {type:'peaking',  frequency:1000, gain:1.5,  Q:0.9},  // MID: warmth
+      {type:'peaking',  frequency:4000, gain:2.0,  Q:1.0},  // HI-M: presence, meend
+      {type:'highshelf',frequency:12000,gain:-1.0, Q:0.7},  // HIGH: tame shrillness
     ],
     comp:{threshold:-28,knee:12,ratio:2.5,attack:0.020,release:0.300,makeupGain:3},
     reverb:{mix:0.28,type:'hall',preDelay:18},
@@ -665,16 +733,13 @@ function createTrack(name, buffer) {
   const analyserNode = audioCtx.createAnalyser();
   analyserNode.fftSize = 512;
 
-  // EQ chain
+  // EQ chain — 5-band (BandLab-style: Low Shelf, 3× Peak, High Shelf)
   const eqBands = [
-    {type:'highpass',frequency:80,gain:0,Q:0.7},
-    {type:'peaking',frequency:200,gain:0,Q:1.0},
-    {type:'peaking',frequency:500,gain:0,Q:1.0},
-    {type:'peaking',frequency:1000,gain:0,Q:1.0},
-    {type:'peaking',frequency:3000,gain:0,Q:1.0},
-    {type:'peaking',frequency:8000,gain:0,Q:1.0},
-    {type:'highshelf',frequency:12000,gain:0,Q:0.7},
-    {type:'lowpass',frequency:20000,gain:0,Q:0.7},
+    {type:'lowshelf', frequency:80,   gain:0, Q:0.7, color:'#FF6B35', label:'LOW',  defFreq:80},
+    {type:'peaking',  frequency:250,  gain:0, Q:1.0, color:'#FFD700', label:'LO-M', defFreq:250},
+    {type:'peaking',  frequency:1000, gain:0, Q:1.0, color:'#00D4FF', label:'MID',  defFreq:1000},
+    {type:'peaking',  frequency:4000, gain:0, Q:1.0, color:'#7B2FFF', label:'HI-M', defFreq:4000},
+    {type:'highshelf',frequency:12000,gain:0, Q:0.7, color:'#00FF88', label:'HIGH', defFreq:12000},
   ];
   const eqNodes = eqBands.map(b => {
     const f = audioCtx.createBiquadFilter();
@@ -784,6 +849,7 @@ function play() {
   });
   document.getElementById('btn-play').textContent = '⏸';
   document.getElementById('btn-play').classList.add('play-active');
+  renderTrackList();
   tick();
 }
 
@@ -795,12 +861,18 @@ function pause() {
   document.getElementById('btn-play').textContent = '▶';
   document.getElementById('btn-play').classList.remove('play-active');
   cancelAnimationFrame(animFrameId);
+  renderTrackList();
 }
 
 function stop() {
   if (isPlaying) pause();
   playheadTime = 0;
+  // Clear any auto-solos set by per-track play
+  if (tracks.some(t=>t._autoSoloed)) {
+    tracks.forEach(t => { t.soloed = false; t._autoSoloed = false; });
+  }
   renderTimeline();
+  renderTrackList();
   updateTimeDisplay();
 }
 
@@ -833,10 +905,12 @@ function renderTrackList() {
     const slot = document.createElement('div');
     slot.className = 'track-slot' + (t.id === selectedTrackId ? ' selected' : '');
     slot.dataset.id = t.id;
+    const isThisPlaying = isPlaying && !t.muted;
     slot.innerHTML = `
       <div class="track-name-row">
         <div class="track-color-dot" style="background:${t.color}"></div>
         <input class="track-name-input" value="${t.name}" data-id="${t.id}" spellcheck="false">
+        <button class="track-play-btn${isThisPlaying?' playing':''}" data-action="trackplay" data-id="${t.id}" title="Play this track">${isThisPlaying?'⏸':'▶'}</button>
       </div>
       <div class="track-btns">
         <button class="track-btn${t.muted?' muted':''}" data-action="mute" data-id="${t.id}" title="Mute">M</button>
@@ -850,7 +924,7 @@ function renderTrackList() {
         <input type="range" class="track-pan" min="-1" max="1" step="0.01" value="${t.pan}" data-id="${t.id}" data-type="pan">
       </div>`;
     slot.addEventListener('click', e => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.classList.contains('track-play-btn')) return;
       selectTrack(t.id);
     });
     list.appendChild(slot);
@@ -868,6 +942,21 @@ function renderTrackList() {
       const id = btn.dataset.id;
       const tr = tracks.find(t=>t.id===id);
       if (!tr) return;
+      if (btn.dataset.action==='trackplay') {
+        if (isPlaying) {
+          pause();
+        } else {
+          // Solo-play this track from beginning
+          playheadTime = 0;
+          // Temporarily solo just this track
+          const prevSolos = tracks.map(t=>t.soloed);
+          tracks.forEach(t => t.soloed = (t.id === id));
+          play();
+          // Restore solos after scheduling (non-destructive: restore on stop)
+          tr._autoSoloed = true;
+        }
+        return;
+      }
       if (btn.dataset.action==='mute') { tr.muted = !tr.muted; }
       if (btn.dataset.action==='solo') { tr.soloed = !tr.soloed; }
       if (btn.dataset.action==='delete') { deleteTrack(id); return; }
@@ -1059,14 +1148,23 @@ document.getElementById('tracks-canvas').addEventListener('drop', e => {
 });
 
 // ─── FILE LOADING ─────────────────────────────────────────────────────────────
-function loadAudioFile(file) {
+function loadAudioFile(file, autoPlay=true) {
   if (!audioCtx) initAudio();
   const name = file.name.replace(/\.[^.]+$/,'');
   const reader = new FileReader();
   reader.onload = async e => {
     try {
       const buffer = await audioCtx.decodeAudioData(e.target.result.slice(0));
-      createTrack(name, buffer);
+      const track = createTrack(name, buffer);
+      // Auto-play the newly added track from start
+      if (autoPlay) {
+        if (isPlaying) pause();
+        playheadTime = 0;
+        // Solo just this track for immediate preview
+        tracks.forEach(t => t.soloed = (t.id === track.id));
+        track._autoSoloed = true;
+        setTimeout(() => play(), 80); // short delay so AudioContext is ready
+      }
     } catch(err) { alert('Could not decode: '+file.name); }
   };
   reader.readAsArrayBuffer(file);
@@ -1081,7 +1179,14 @@ document.getElementById('add-track-btn').addEventListener('click', () => {
 });
 
 // ─── TRANSPORT ───────────────────────────────────────────────────────────────
-document.getElementById('btn-play').addEventListener('click', () => { if (!audioCtx) initAudio(); togglePlay(); });
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (!audioCtx) initAudio();
+  // Clear auto-solo so all tracks play
+  if (!isPlaying && tracks.some(t=>t._autoSoloed)) {
+    tracks.forEach(t => { t.soloed = false; t._autoSoloed = false; });
+  }
+  togglePlay();
+});
 document.getElementById('btn-return').addEventListener('click', () => stop());
 document.getElementById('btn-back').addEventListener('click', () => {
   const wasPlaying = isPlaying;
@@ -1194,88 +1299,316 @@ function makeKnob(label, value, min, max, step, unit, color, onChange) {
   return wrap;
 }
 
-// ─── EQ PANEL ────────────────────────────────────────────────────────────────
+// ─── EQ PANEL — BandLab-style interactive canvas ─────────────────────────────
+const EQ_MIN_FREQ = 20, EQ_MAX_FREQ = 20000;
+const EQ_MAX_GAIN = 12; // ±12 dB range
+let eqSelectedBand = null; // index 0-4
+let eqDragActive = false;
+let eqCanvasTrackId = null; // which track the EQ canvas is wired to
+
+function eqFreqToX(freq, W) {
+  return (Math.log10(freq) - Math.log10(EQ_MIN_FREQ)) /
+         (Math.log10(EQ_MAX_FREQ) - Math.log10(EQ_MIN_FREQ)) * W;
+}
+function eqXToFreq(x, W) {
+  const t = Math.max(0, Math.min(1, x / W));
+  return Math.pow(10, Math.log10(EQ_MIN_FREQ) + t * (Math.log10(EQ_MAX_FREQ) - Math.log10(EQ_MIN_FREQ)));
+}
+function eqGainToY(gain, H) {
+  const pad = 18;
+  return (H - pad*2) / 2 + pad - (gain / EQ_MAX_GAIN) * ((H - pad*2) / 2);
+}
+function eqYToGain(y, H) {
+  const pad = 18;
+  return ((H - pad*2) / 2 + pad - y) / ((H - pad*2) / 2) * EQ_MAX_GAIN;
+}
+
+// Approximate biquad frequency response in dB at a given frequency
+function eqBandResponse(band, freq) {
+  const sr = 48000;
+  const f0 = band.frequency, Q = band.Q || 1, G = band.gain || 0;
+  const w = 2 * Math.PI * freq / sr;
+  const w0 = 2 * Math.PI * f0 / sr;
+  if (band.type === 'peaking') {
+    const A = Math.pow(10, G / 40);
+    const bw = w0 / Q;
+    const t = (w - w0) / (bw / 2);
+    const response = G / (1 + t * t);
+    return response;
+  } else if (band.type === 'lowshelf') {
+    const blend = 1 / (1 + Math.pow(freq / f0, 2));
+    return G * blend;
+  } else if (band.type === 'highshelf') {
+    const blend = 1 / (1 + Math.pow(f0 / Math.max(freq, 1), 2));
+    return G * blend;
+  }
+  return 0;
+}
+
 function buildEQPanel() {
-  const eqCanvas = document.getElementById('eq-canvas');
-  const eqKnobArea = document.querySelector('#panel-eq .fx-section:nth-child(2)');
-  eqKnobArea.innerHTML='';
+  const canvas = document.getElementById('eq-canvas');
+  const track = tracks.find(t => t.id === selectedTrackId);
 
-  const track = tracks.find(t=>t.id===selectedTrackId);
-  if (!track) { drawEQCurve(null,[]); return; }
+  eqCanvasTrackId = track ? track.id : null;
 
-  const labels=['HP','LM','MID','UM','PRE','AIR','HS','LP'];
-  const colors=['#00D4FF','#7B2FFF','#00D4FF','#7B2FFF','#00D4FF','#7B2FFF','#00D4FF','#7B2FFF'];
+  // Size the canvas
+  const parent = document.getElementById('panel-eq');
+  const W = parent.clientWidth || 600;
+  const H = parent.clientHeight - 40 || 180; // minus bottom bar
+  canvas.width = W * (window.devicePixelRatio || 1);
+  canvas.height = H * (window.devicePixelRatio || 1);
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
 
-  track.eqBands.forEach((band,i) => {
-    const isFreq = true;
-    const isGain = band.type!=='highpass'&&band.type!=='lowpass';
-    const col = document.createElement('div');
-    col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px';
+  drawEQCanvas(canvas, track);
 
-    if (isGain) {
-      col.appendChild(makeKnob('G',band.gain,-18,18,0.5,'dB',colors[i],v=>{
-        band.gain=v; track.eqNodes[i].gain.value=v; drawEQCurve(eqCanvas,track.eqBands);
-      }));
+  // Toggle
+  const toggle = document.getElementById('eq-toggle');
+  toggle.classList.toggle('on', track?.effects?.eq?.enabled || false);
+  toggle.onclick = () => {
+    if (!track) return;
+    track.effects.eq.enabled = !track.effects.eq.enabled;
+    track.eqNodes.forEach((n, i) => { n.gain.value = track.effects.eq.enabled ? track.eqBands[i].gain : 0; });
+    toggle.classList.toggle('on', track.effects.eq.enabled);
+    drawEQCanvas(canvas, track);
+  };
+
+  // Flat button
+  document.getElementById('eq-flat-btn').onclick = () => {
+    if (!track) return;
+    track.eqBands.forEach((b, i) => {
+      b.gain = 0; b.frequency = b.defFreq;
+      track.eqNodes[i].gain.value = 0;
+      track.eqNodes[i].frequency.value = b.defFreq;
+    });
+    eqSelectedBand = null;
+    updateEQInfoBar(null);
+    drawEQCanvas(canvas, track);
+  };
+
+  // ── Interaction ──
+  function getCanvasPos(e) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const cx = ((e.clientX ?? e.touches[0].clientX) - rect.left) * dpr;
+    const cy = ((e.clientY ?? e.touches[0].clientY) - rect.top) * dpr;
+    return { x: cx, y: cy };
+  }
+
+  function hitTestBand(pos) {
+    if (!track) return null;
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.width, H = canvas.height;
+    const hitR = 18 * dpr;
+    for (let i = 0; i < track.eqBands.length; i++) {
+      const b = track.eqBands[i];
+      const bx = eqFreqToX(b.frequency, W);
+      const by = eqGainToY(b.gain, H);
+      const dx = pos.x - bx, dy = pos.y - by;
+      if (dx*dx + dy*dy < hitR*hitR) return i;
     }
-    col.appendChild(makeKnob(labels[i],band.frequency,20,20000,10,'Hz',colors[i],v=>{
-      band.frequency=v; track.eqNodes[i].frequency.value=v; drawEQCurve(eqCanvas,track.eqBands);
-    }));
-    eqKnobArea.appendChild(col);
+    return null;
+  }
+
+  function onDown(e) {
+    e.preventDefault();
+    const pos = getCanvasPos(e);
+    const hit = hitTestBand(pos);
+    if (hit !== null) {
+      eqSelectedBand = hit;
+      eqDragActive = true;
+      updateEQInfoBar(track.eqBands[hit]);
+      drawEQCanvas(canvas, track);
+    }
+  }
+  function onMove(e) {
+    if (!eqDragActive || eqSelectedBand === null || !track) return;
+    e.preventDefault();
+    const pos = getCanvasPos(e);
+    const W = canvas.width, H = canvas.height;
+    const band = track.eqBands[eqSelectedBand];
+    band.frequency = Math.round(Math.max(EQ_MIN_FREQ, Math.min(EQ_MAX_FREQ, eqXToFreq(pos.x, W))));
+    band.gain = Math.round(Math.max(-EQ_MAX_GAIN, Math.min(EQ_MAX_GAIN, eqYToGain(pos.y, H))) * 10) / 10;
+    if (track.effects.eq.enabled) {
+      track.eqNodes[eqSelectedBand].frequency.value = band.frequency;
+      track.eqNodes[eqSelectedBand].gain.value = band.gain;
+    }
+    updateEQInfoBar(band);
+    drawEQCanvas(canvas, track);
+  }
+  function onUp() { eqDragActive = false; }
+  function onDblClick(e) {
+    const pos = getCanvasPos(e);
+    const hit = hitTestBand(pos);
+    if (hit !== null && track) {
+      track.eqBands[hit].gain = 0;
+      track.eqNodes[hit].gain.value = 0;
+      updateEQInfoBar(track.eqBands[hit]);
+      drawEQCanvas(canvas, track);
+    }
+  }
+
+  // Remove old listeners by cloning
+  const newCanvas = canvas.cloneNode(true);
+  canvas.parentNode.replaceChild(newCanvas, canvas);
+  const cv = document.getElementById('eq-canvas');
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  cv.width = W * (window.devicePixelRatio || 1);
+  cv.height = H * (window.devicePixelRatio || 1);
+
+  cv.addEventListener('mousedown', onDown);
+  cv.addEventListener('mousemove', onMove);
+  cv.addEventListener('mouseup', onUp);
+  cv.addEventListener('mouseleave', onUp);
+  cv.addEventListener('touchstart', onDown, {passive:false});
+  cv.addEventListener('touchmove', onMove, {passive:false});
+  cv.addEventListener('touchend', onUp);
+  cv.addEventListener('dblclick', onDblClick);
+
+  drawEQCanvas(cv, track);
+}
+
+function drawEQCanvas(canvas, track) {
+  if (!canvas) return;
+  const W = canvas.width, H = canvas.height;
+  const dpr = window.devicePixelRatio || 1;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(0, 0, W, H);
+
+  // Frequency grid lines + labels
+  const gridFreqs = [50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+  gridFreqs.forEach(f => {
+    const x = eqFreqToX(f, W);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = `${10 * dpr}px Inter`;
+    ctx.textAlign = 'center';
+    ctx.fillText(f >= 1000 ? (f/1000)+'k' : f, x, H - 4*dpr);
   });
 
-  drawEQCurve(eqCanvas, track.eqBands);
+  // dB grid lines
+  [-9, -6, -3, 3, 6, 9].forEach(db => {
+    const y = eqGainToY(db, H);
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  });
 
-  const toggle = document.getElementById('eq-toggle');
-  toggle.classList.toggle('on', track.effects.eq.enabled);
-  toggle.onclick = () => {
-    track.effects.eq.enabled = !track.effects.eq.enabled;
-    const gain = track.effects.eq.enabled ? 1 : 0;
-    track.eqNodes.forEach((n,i) => n.gain.value = track.effects.eq.enabled ? track.eqBands[i].gain : 0);
-    toggle.classList.toggle('on', track.effects.eq.enabled);
-  };
-}
+  // 0dB center line
+  const midY = eqGainToY(0, H);
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+  ctx.setLineDash([4*dpr, 4*dpr]);
+  ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(W, midY); ctx.stroke();
+  ctx.setLineDash([]);
 
-function drawEQCurve(canvas, bands) {
-  if (!canvas) return;
-  const W=canvas.width, H=canvas.height;
-  const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,W,H);
-  // Grid
-  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
-  [0.25,0.5,0.75].forEach(r=>{ const y=H*r; ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); });
-  // 0dB line
-  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1;
-  const mid=H/2; ctx.beginPath();ctx.moveTo(0,mid);ctx.lineTo(W,mid);ctx.stroke();
-  if (!bands||!bands.length) return;
-  // Frequency response curve (simplified)
-  ctx.beginPath();
-  ctx.strokeStyle='#00D4FF'; ctx.lineWidth=2; ctx.shadowColor='#00D4FF'; ctx.shadowBlur=6;
-  for (let i=0; i<W; i++) {
-    const freq=20*Math.pow(1000,i/W);
-    let db=0;
-    bands.forEach(b=>{
-      if (b.type==='peaking') {
-        const f0=b.frequency,Q=b.Q,g=b.gain;
-        const A=Math.pow(10,g/40);
-        const w0=2*Math.PI*freq/48000;
-        const wB=2*Math.PI*f0/48000;
-        const dw=wB-w0;
-        const scale=1/(1+dw*dw*Q*Q);
-        db+=g*scale;
-      } else if (b.type==='highpass' && freq<b.frequency) {
-        db-=Math.min(24,(b.frequency/Math.max(freq,1))*6);
-      } else if (b.type==='lowpass' && freq>b.frequency) {
-        db-=Math.min(24,(freq/b.frequency)*6);
-      } else if (b.type==='highshelf' && freq>b.frequency) {
-        db+=b.gain*(freq-b.frequency)/(freq);
-      }
-    });
-    const y=mid-db*(H/2)/18;
-    i===0?ctx.moveTo(0,y):ctx.lineTo(i,y);
+  // dB labels left
+  [12, 6, 0, -6, -12].forEach(db => {
+    const y = eqGainToY(db, H);
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = `${9 * dpr}px JetBrains Mono`;
+    ctx.textAlign = 'left';
+    ctx.fillText((db > 0 ? '+' : '') + db, 4*dpr, y + 3*dpr);
+  });
+
+  // EQ curve fill + stroke
+  if (track && track.eqBands.length) {
+    const points = [];
+    for (let px = 0; px <= W; px++) {
+      const freq = eqXToFreq(px, W);
+      let db = 0;
+      track.eqBands.forEach(b => { db += eqBandResponse(b, freq); });
+      points.push({ x: px, y: eqGainToY(db, H) });
+    }
+
+    // Filled area under curve
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    points.forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.lineTo(W, midY);
+    ctx.closePath();
+    const fillGrad = ctx.createLinearGradient(0, 0, 0, H);
+    fillGrad.addColorStop(0, 'rgba(0,212,255,0.18)');
+    fillGrad.addColorStop(0.5, 'rgba(0,212,255,0.06)');
+    fillGrad.addColorStop(1, 'rgba(123,47,255,0.08)');
+    ctx.fillStyle = fillGrad;
+    ctx.fill();
+
+    // Curve stroke
+    ctx.beginPath();
+    points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.strokeStyle = track.effects?.eq?.enabled ? '#00D4FF' : 'rgba(0,212,255,0.35)';
+    ctx.lineWidth = 2 * dpr;
+    ctx.shadowColor = '#00D4FF';
+    ctx.shadowBlur = track.effects?.eq?.enabled ? 8 : 0;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
   }
-  ctx.stroke(); ctx.shadowBlur=0;
+
+  // Band nodes
+  if (track) {
+    track.eqBands.forEach((b, i) => {
+      const bx = eqFreqToX(b.frequency, W);
+      const by = eqGainToY(b.gain, H);
+      const r = 10 * dpr;
+      const isSelected = i === eqSelectedBand;
+
+      // Vertical line from node to 0dB line
+      ctx.strokeStyle = b.color + '55';
+      ctx.lineWidth = 1 * dpr;
+      ctx.beginPath(); ctx.moveTo(bx, midY); ctx.lineTo(bx, by); ctx.stroke();
+
+      // Outer glow ring if selected
+      if (isSelected) {
+        ctx.beginPath(); ctx.arc(bx, by, r + 5*dpr, 0, Math.PI*2);
+        ctx.strokeStyle = b.color + '66'; ctx.lineWidth = 2*dpr; ctx.stroke();
+      }
+
+      // Node fill
+      ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI*2);
+      const nodeGrad = ctx.createRadialGradient(bx - r*0.3, by - r*0.3, 0, bx, by, r);
+      nodeGrad.addColorStop(0, b.color + 'FF');
+      nodeGrad.addColorStop(1, b.color + '88');
+      ctx.fillStyle = nodeGrad;
+      if (isSelected) { ctx.shadowColor = b.color; ctx.shadowBlur = 16*dpr; }
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Node border
+      ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI*2);
+      ctx.strokeStyle = isSelected ? '#fff' : b.color + 'AA';
+      ctx.lineWidth = 1.5 * dpr; ctx.stroke();
+
+      // Band label inside node
+      ctx.fillStyle = '#000';
+      ctx.font = `bold ${8 * dpr}px Inter`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(b.label.slice(0,2), bx, by);
+    });
+  }
 }
+
+function updateEQInfoBar(band) {
+  const lbl = document.getElementById('eq-sel-label');
+  const freq = document.getElementById('eq-sel-freq');
+  const gain = document.getElementById('eq-sel-gain');
+  if (!band) {
+    if (lbl) lbl.textContent = '—';
+    if (freq) freq.textContent = '—';
+    if (gain) gain.textContent = '—';
+    return;
+  }
+  if (lbl) { lbl.textContent = band.label; lbl.style.color = band.color; }
+  if (freq) freq.textContent = band.frequency >= 1000 ? (band.frequency/1000).toFixed(1)+'kHz' : band.frequency+'Hz';
+  if (gain) { gain.textContent = (band.gain >= 0 ? '+' : '') + band.gain.toFixed(1)+' dB'; gain.style.color = band.gain > 0 ? '#00FF88' : band.gain < 0 ? '#FF6B35' : 'var(--text-accent)'; }
+}
+
+// Legacy stub kept for any remaining callers
+function drawEQCurve() {}
 
 // ─── COMPRESSOR PANEL ────────────────────────────────────────────────────────
 function buildCompPanel() {
@@ -1408,6 +1741,14 @@ function buildChorusPanel() {
   toggle.onclick=()=>toggle.classList.toggle('on');
 }
 
+// ─── FX RACK TOGGLE ──────────────────────────────────────────────────────────
+const fxRack = document.getElementById('effects-rack');
+const fxHandle = document.getElementById('fx-rack-handle');
+fxHandle.addEventListener('click', () => {
+  fxRack.classList.toggle('collapsed');
+  if (!fxRack.classList.contains('collapsed')) updateFXPanels();
+});
+
 // ─── FX TABS ─────────────────────────────────────────────────────────────────
 document.querySelectorAll('.fx-tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
@@ -1415,6 +1756,9 @@ document.querySelectorAll('.fx-tab').forEach(tab=>{
     document.querySelectorAll('.fx-panel').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
+    document.getElementById('fx-active-label').textContent=tab.textContent;
+    // Expand rack if collapsed when switching tabs
+    fxRack.classList.remove('collapsed');
     updateFXPanels();
   });
 });
@@ -1614,15 +1958,16 @@ function applyPreset(key) {
 
 function applyPresetToTrack(track, key) {
   const preset=PRESETS[key]||PRESETS['bansuri'];
-  if(preset.eq&&preset.eq.bands){
-    preset.eq.bands.forEach((b,i)=>{
+  if(preset.eq&&preset.eq.length){
+    // New 5-band array style
+    preset.eq.forEach((b,i)=>{
       if(i>=track.eqBands.length)return;
-      track.eqBands[i]={...track.eqBands[i],...b};
-      track.eqNodes[i].frequency.value=b.frequency;
-      if(b.gain!==undefined)track.eqNodes[i].gain.value=b.gain;
-      if(b.Q!==undefined)track.eqNodes[i].Q.value=b.Q;
+      if(b.frequency!==undefined){ track.eqBands[i].frequency=b.frequency; track.eqNodes[i].frequency.value=b.frequency; }
+      if(b.gain!==undefined){ track.eqBands[i].gain=b.gain; track.eqNodes[i].gain.value=b.gain; }
+      if(b.Q!==undefined){ track.eqBands[i].Q=b.Q; track.eqNodes[i].Q.value=b.Q; }
     });
-    track.effects.eq.enabled=preset.eq.enabled!==false;
+    track.effects.eq.enabled=true;
+    track.eqNodes.forEach((n,i)=>n.gain.value=track.eqBands[i].gain);
   }
   if(preset.comp){
     const p=preset.comp;
