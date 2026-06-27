@@ -1174,11 +1174,24 @@ function loadAudioFile(file) {
   const name = file.name.replace(/\.[^.]+$/,'');
   const reader = new FileReader();
   reader.onload = async e => {
+    const originalBuf = e.target.result;
+    let buffer = null;
+    // Try main context first; if suspended (iOS file-picker side-effect), fall back
+    // to a temporary AudioContext which doesn't require a running state to decode.
     try {
-      const buffer = await audioCtx.decodeAudioData(e.target.result.slice(0));
-      createTrack(name, buffer);
-      // No auto-play — user presses ▶ when ready
-    } catch(err) { alert('Could not decode: ' + file.name); }
+      buffer = await audioCtx.decodeAudioData(originalBuf.slice(0));
+    } catch(firstErr) {
+      try {
+        const tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
+        try { buffer = await tmpCtx.decodeAudioData(originalBuf.slice(0)); }
+        finally { tmpCtx.close(); }
+      } catch(secondErr) {
+        alert('Could not decode: ' + file.name + '\n(' + secondErr.message + ')');
+        return;
+      }
+    }
+    if (buffer) createTrack(name, buffer);
+    // No auto-play — user presses ▶ when ready
   };
   reader.readAsArrayBuffer(file);
 }
@@ -1851,9 +1864,15 @@ async function loadMicDevices() {
 
 async function armMic() {
   if (!audioCtx) initAudio();
+  // iOS: AudioContext must be running before createMediaStreamSource works.
+  if (audioCtx.state !== 'running') {
+    try { await audioCtx.resume(); } catch(e) {}
+  }
   try {
     micStream = await navigator.mediaDevices.getUserMedia({
-      audio:{ sampleRate:48000, channelCount:1, echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+      // Note: sampleRate constraint omitted — it causes getUserMedia to fail on many iOS devices.
+      // The AudioContext (48 kHz) handles resampling automatically.
+      audio:{ channelCount:1, echoCancellation:false, noiseSuppression:false, autoGainControl:false }
     });
     micSource = audioCtx.createMediaStreamSource(micStream);
     micInputGain = audioCtx.createGain();
@@ -1869,7 +1888,9 @@ async function armMic() {
     document.getElementById('btn-arm').classList.add('armed');
     document.getElementById('btn-rec-go').classList.add('armed');
     document.getElementById('btn-stop-save').classList.add('armed');
-  } catch(e){ alert('Mic access denied: '+e.message); }
+  } catch(e){
+    alert('Microphone access failed.\n\nTo fix: Settings → Privacy & Security → Microphone → enable for Safari (or WaveCraft).\n\nError: '+e.message);
+  }
 }
 
 function drawVUMeterRec() {
@@ -2182,6 +2203,15 @@ window.addEventListener('resize',()=>{
   clearTimeout(resizeTimer);
   resizeTimer=setTimeout(()=>{renderTimeline();},100);
 });
+
+// ─── IOS AUDIO CONTEXT KEEPALIVE ─────────────────────────────────────────────
+// iOS Safari suspends AudioContext when native UI (file picker, share sheet, etc.)
+// takes focus. Re-resume on every tap so audio is always ready to play.
+function _resumeAudioCtx() {
+  if (audioCtx && audioCtx.state !== 'running') audioCtx.resume();
+}
+document.addEventListener('touchstart', _resumeAudioCtx, {passive: true});
+document.addEventListener('click', _resumeAudioCtx, {passive: true});
 
 // ─── SPLASH INIT ─────────────────────────────────────────────────────────────
 document.getElementById('splash').addEventListener('click',()=>{
