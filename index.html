@@ -825,12 +825,13 @@ function selectTrack(id) {
 }
 
 // ─── PLAYBACK ────────────────────────────────────────────────────────────────
-function play() {
+async function play() {
   if (!audioCtx) initAudio();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  // iOS: MUST await resume or currentTime stays frozen and tick never advances
+  if (audioCtx.state !== 'running') await audioCtx.resume();
   if (isPlaying) return;
   isPlaying = true;
-  playStartTime = audioCtx.currentTime;
+  playStartTime = audioCtx.currentTime;  // snapshot AFTER context is running
   playStartOffset = playheadTime;
 
   const soloExists = tracks.some(t => t.soloed);
@@ -887,6 +888,15 @@ function tick() {
   updateTimeDisplay();
   renderTimeline();
   drawMasterVU();
+  // Auto-scroll timeline to keep playhead in view
+  const wrap = document.getElementById('tracks-canvas-wrap');
+  const px = playheadTime * timelineZoom;
+  const viewW = wrap.clientWidth;
+  if (px > wrap.scrollLeft + viewW * 0.8) {
+    wrap.scrollLeft = px - viewW * 0.2;
+  } else if (px < wrap.scrollLeft) {
+    wrap.scrollLeft = Math.max(0, px - viewW * 0.1);
+  }
   animFrameId = requestAnimationFrame(tick);
 }
 
@@ -946,14 +956,10 @@ function renderTrackList() {
         if (isPlaying) {
           pause();
         } else {
-          // Solo-play this track from beginning
           playheadTime = 0;
-          // Temporarily solo just this track
-          const prevSolos = tracks.map(t=>t.soloed);
           tracks.forEach(t => t.soloed = (t.id === id));
-          play();
-          // Restore solos after scheduling (non-destructive: restore on stop)
           tr._autoSoloed = true;
+          play(); // already async; no need to await here
         }
         return;
       }
@@ -1151,24 +1157,16 @@ document.getElementById('tracks-canvas').addEventListener('drop', e => {
 });
 
 // ─── FILE LOADING ─────────────────────────────────────────────────────────────
-function loadAudioFile(file, autoPlay=true) {
+function loadAudioFile(file) {
   if (!audioCtx) initAudio();
   const name = file.name.replace(/\.[^.]+$/,'');
   const reader = new FileReader();
   reader.onload = async e => {
     try {
       const buffer = await audioCtx.decodeAudioData(e.target.result.slice(0));
-      const track = createTrack(name, buffer);
-      // Auto-play the newly added track from start
-      if (autoPlay) {
-        if (isPlaying) pause();
-        playheadTime = 0;
-        // Solo just this track for immediate preview
-        tracks.forEach(t => t.soloed = (t.id === track.id));
-        track._autoSoloed = true;
-        setTimeout(() => play(), 80); // short delay so AudioContext is ready
-      }
-    } catch(err) { alert('Could not decode: '+file.name); }
+      createTrack(name, buffer);
+      // No auto-play — user presses ▶ when ready
+    } catch(err) { alert('Could not decode: ' + file.name); }
   };
   reader.readAsArrayBuffer(file);
 }
@@ -1184,12 +1182,9 @@ document.getElementById('add-track-btn').addEventListener('click', () => {
 });
 
 // ─── TRANSPORT ───────────────────────────────────────────────────────────────
-document.getElementById('btn-play').addEventListener('click', () => {
+document.getElementById('btn-play').addEventListener('click', async () => {
   if (!audioCtx) initAudio();
-  // Clear auto-solo so all tracks play
-  if (!isPlaying && tracks.some(t=>t._autoSoloed)) {
-    tracks.forEach(t => { t.soloed = false; t._autoSoloed = false; });
-  }
+  if (audioCtx.state !== 'running') await audioCtx.resume();
   togglePlay();
 });
 document.getElementById('btn-return').addEventListener('click', () => stop());
@@ -1228,7 +1223,7 @@ document.addEventListener('touchend', () => { bpmDragStart=null; });
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
   if (e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
-  if (e.code==='Space') { e.preventDefault(); if (!audioCtx) initAudio(); togglePlay(); }
+  if (e.code==='Space') { e.preventDefault(); if (!audioCtx) initAudio(); if(audioCtx.state!=='running')audioCtx.resume().then(()=>togglePlay()); else togglePlay(); }
   if (e.code==='KeyR') openRecPanel();
   if (e.code==='Home') stop();
   if (e.code==='ArrowLeft') { const wp=isPlaying; if(wp)pause(); playheadTime=Math.max(0,playheadTime-1); if(wp)play(); else {renderTimeline();updateTimeDisplay();} }
@@ -1306,10 +1301,10 @@ function makeKnob(label, value, min, max, step, unit, color, onChange) {
 
 // ─── EQ PANEL — BandLab-style interactive canvas ─────────────────────────────
 const EQ_MIN_FREQ = 20, EQ_MAX_FREQ = 20000;
-const EQ_MAX_GAIN = 12; // ±12 dB range
-let eqSelectedBand = null; // index 0-4
+const EQ_MAX_GAIN = 12;
+let eqSelectedBand = null;
 let eqDragActive = false;
-let eqCanvasTrackId = null; // which track the EQ canvas is wired to
+let eqAbortCtrl = null; // AbortController to cleanly remove old listeners
 
 function eqFreqToX(freq, W) {
   return (Math.log10(freq) - Math.log10(EQ_MIN_FREQ)) /
@@ -1351,34 +1346,118 @@ function eqBandResponse(band, freq) {
 }
 
 function buildEQPanel() {
-  const canvas = document.getElementById('eq-canvas');
   const track = tracks.find(t => t.id === selectedTrackId);
 
-  eqCanvasTrackId = track ? track.id : null;
+  // Cancel any previous listeners cleanly — no canvas cloning needed
+  if (eqAbortCtrl) eqAbortCtrl.abort();
+  eqAbortCtrl = new AbortController();
+  const sig = eqAbortCtrl.signal;
 
-  // Size the canvas
-  const parent = document.getElementById('panel-eq');
-  const W = parent.clientWidth || 600;
-  const H = parent.clientHeight - 40 || 180; // minus bottom bar
-  canvas.width = W * (window.devicePixelRatio || 1);
-  canvas.height = H * (window.devicePixelRatio || 1);
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
+  const cv = document.getElementById('eq-canvas');
 
-  drawEQCanvas(canvas, track);
+  // Size canvas — use window width as fallback so it's never 0
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = Math.max(100, cv.parentElement?.clientWidth || window.innerWidth || 600);
+  const cssH = 200; // fixed CSS height — immune to collapsed-rack sizing issues
+  cv.width  = Math.round(cssW * dpr);
+  cv.height = Math.round(cssH * dpr);
+  cv.style.width  = cssW + 'px';
+  cv.style.height = cssH + 'px';
+
+  // ── helpers (always read from cv directly — no stale closure) ──
+  function getPos(e) {
+    const el = document.getElementById('eq-canvas');
+    const rect = el.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return {
+      x: (src.clientX - rect.left) * dpr,
+      y: (src.clientY - rect.top)  * dpr
+    };
+  }
+
+  function hitTest(pos) {
+    if (!track) return null;
+    const el = document.getElementById('eq-canvas');
+    const hitR = 20 * dpr;
+    for (let i = 0; i < track.eqBands.length; i++) {
+      const b = track.eqBands[i];
+      const bx = eqFreqToX(b.frequency, el.width);
+      const by = eqGainToY(b.gain,      el.height);
+      if ((pos.x - bx) ** 2 + (pos.y - by) ** 2 < hitR * hitR) return i;
+    }
+    return null;
+  }
+
+  function applyBandDrag(pos) {
+    if (eqSelectedBand === null || !track) return;
+    const el = document.getElementById('eq-canvas');
+    const band = track.eqBands[eqSelectedBand];
+    band.frequency = Math.round(
+      Math.max(EQ_MIN_FREQ, Math.min(EQ_MAX_FREQ, eqXToFreq(pos.x, el.width))));
+    band.gain = parseFloat(
+      Math.max(-EQ_MAX_GAIN, Math.min(EQ_MAX_GAIN, eqYToGain(pos.y, el.height))).toFixed(1));
+    // Always update audio node (toggle bypass by zeroing gain elsewhere)
+    track.eqNodes[eqSelectedBand].frequency.value = band.frequency;
+    if (track.effects.eq.enabled) track.eqNodes[eqSelectedBand].gain.value = band.gain;
+    updateEQInfoBar(band);
+    drawEQCanvas(document.getElementById('eq-canvas'), track);
+  }
+
+  cv.addEventListener('mousedown', e => {
+    const hit = hitTest(getPos(e));
+    if (hit !== null) { eqSelectedBand = hit; eqDragActive = true;
+      updateEQInfoBar(track?.eqBands[hit]);
+      drawEQCanvas(document.getElementById('eq-canvas'), track); }
+  }, { signal: sig });
+
+  cv.addEventListener('mousemove', e => {
+    if (!eqDragActive) return;
+    e.preventDefault();
+    applyBandDrag(getPos(e));
+  }, { signal: sig });
+
+  cv.addEventListener('mouseup',    () => { eqDragActive = false; }, { signal: sig });
+  cv.addEventListener('mouseleave', () => { eqDragActive = false; }, { signal: sig });
+
+  cv.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const hit = hitTest(getPos(e));
+    if (hit !== null) { eqSelectedBand = hit; eqDragActive = true;
+      updateEQInfoBar(track?.eqBands[hit]);
+      drawEQCanvas(document.getElementById('eq-canvas'), track); }
+  }, { passive: false, signal: sig });
+
+  cv.addEventListener('touchmove', e => {
+    if (!eqDragActive) return;
+    e.preventDefault();
+    applyBandDrag(getPos(e));
+  }, { passive: false, signal: sig });
+
+  cv.addEventListener('touchend', () => { eqDragActive = false; }, { signal: sig });
+
+  cv.addEventListener('dblclick', e => {
+    const hit = hitTest(getPos(e));
+    if (hit !== null && track) {
+      track.eqBands[hit].gain = 0;
+      track.eqNodes[hit].gain.value = 0;
+      updateEQInfoBar(track.eqBands[hit]);
+      drawEQCanvas(document.getElementById('eq-canvas'), track);
+    }
+  }, { signal: sig });
 
   // Toggle
-  const toggle = document.getElementById('eq-toggle');
-  toggle.classList.toggle('on', track?.effects?.eq?.enabled || false);
-  toggle.onclick = () => {
+  document.getElementById('eq-toggle').onclick = () => {
     if (!track) return;
     track.effects.eq.enabled = !track.effects.eq.enabled;
-    track.eqNodes.forEach((n, i) => { n.gain.value = track.effects.eq.enabled ? track.eqBands[i].gain : 0; });
-    toggle.classList.toggle('on', track.effects.eq.enabled);
-    drawEQCanvas(canvas, track);
+    track.eqNodes.forEach((n, i) => {
+      n.gain.value = track.effects.eq.enabled ? track.eqBands[i].gain : 0;
+    });
+    document.getElementById('eq-toggle').classList.toggle('on', track.effects.eq.enabled);
+    drawEQCanvas(document.getElementById('eq-canvas'), track);
   };
+  document.getElementById('eq-toggle').classList.toggle('on', track?.effects?.eq?.enabled || false);
 
-  // Flat button
+  // Flat
   document.getElementById('eq-flat-btn').onclick = () => {
     if (!track) return;
     track.eqBands.forEach((b, i) => {
@@ -1388,87 +1467,8 @@ function buildEQPanel() {
     });
     eqSelectedBand = null;
     updateEQInfoBar(null);
-    drawEQCanvas(canvas, track);
+    drawEQCanvas(document.getElementById('eq-canvas'), track);
   };
-
-  // ── Interaction ──
-  function getCanvasPos(e) {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const cx = ((e.clientX ?? e.touches[0].clientX) - rect.left) * dpr;
-    const cy = ((e.clientY ?? e.touches[0].clientY) - rect.top) * dpr;
-    return { x: cx, y: cy };
-  }
-
-  function hitTestBand(pos) {
-    if (!track) return null;
-    const dpr = window.devicePixelRatio || 1;
-    const W = canvas.width, H = canvas.height;
-    const hitR = 18 * dpr;
-    for (let i = 0; i < track.eqBands.length; i++) {
-      const b = track.eqBands[i];
-      const bx = eqFreqToX(b.frequency, W);
-      const by = eqGainToY(b.gain, H);
-      const dx = pos.x - bx, dy = pos.y - by;
-      if (dx*dx + dy*dy < hitR*hitR) return i;
-    }
-    return null;
-  }
-
-  function onDown(e) {
-    e.preventDefault();
-    const pos = getCanvasPos(e);
-    const hit = hitTestBand(pos);
-    if (hit !== null) {
-      eqSelectedBand = hit;
-      eqDragActive = true;
-      updateEQInfoBar(track.eqBands[hit]);
-      drawEQCanvas(canvas, track);
-    }
-  }
-  function onMove(e) {
-    if (!eqDragActive || eqSelectedBand === null || !track) return;
-    e.preventDefault();
-    const pos = getCanvasPos(e);
-    const W = canvas.width, H = canvas.height;
-    const band = track.eqBands[eqSelectedBand];
-    band.frequency = Math.round(Math.max(EQ_MIN_FREQ, Math.min(EQ_MAX_FREQ, eqXToFreq(pos.x, W))));
-    band.gain = Math.round(Math.max(-EQ_MAX_GAIN, Math.min(EQ_MAX_GAIN, eqYToGain(pos.y, H))) * 10) / 10;
-    if (track.effects.eq.enabled) {
-      track.eqNodes[eqSelectedBand].frequency.value = band.frequency;
-      track.eqNodes[eqSelectedBand].gain.value = band.gain;
-    }
-    updateEQInfoBar(band);
-    drawEQCanvas(canvas, track);
-  }
-  function onUp() { eqDragActive = false; }
-  function onDblClick(e) {
-    const pos = getCanvasPos(e);
-    const hit = hitTestBand(pos);
-    if (hit !== null && track) {
-      track.eqBands[hit].gain = 0;
-      track.eqNodes[hit].gain.value = 0;
-      updateEQInfoBar(track.eqBands[hit]);
-      drawEQCanvas(canvas, track);
-    }
-  }
-
-  // Remove old listeners by cloning
-  const newCanvas = canvas.cloneNode(true);
-  canvas.parentNode.replaceChild(newCanvas, canvas);
-  const cv = document.getElementById('eq-canvas');
-  cv.style.width = W + 'px'; cv.style.height = H + 'px';
-  cv.width = W * (window.devicePixelRatio || 1);
-  cv.height = H * (window.devicePixelRatio || 1);
-
-  cv.addEventListener('mousedown', onDown);
-  cv.addEventListener('mousemove', onMove);
-  cv.addEventListener('mouseup', onUp);
-  cv.addEventListener('mouseleave', onUp);
-  cv.addEventListener('touchstart', onDown, {passive:false});
-  cv.addEventListener('touchmove', onMove, {passive:false});
-  cv.addEventListener('touchend', onUp);
-  cv.addEventListener('dblclick', onDblClick);
 
   drawEQCanvas(cv, track);
 }
@@ -1751,7 +1751,10 @@ const fxRack = document.getElementById('effects-rack');
 const fxHandle = document.getElementById('fx-rack-handle');
 fxHandle.addEventListener('click', () => {
   fxRack.classList.toggle('collapsed');
-  if (!fxRack.classList.contains('collapsed')) updateFXPanels();
+  if (!fxRack.classList.contains('collapsed')) {
+    // Wait for CSS transition to give the panel its real dimensions
+    setTimeout(() => updateFXPanels(), 320);
+  }
 });
 
 // ─── FX TABS ─────────────────────────────────────────────────────────────────
