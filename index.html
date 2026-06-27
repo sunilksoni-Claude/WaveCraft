@@ -411,6 +411,11 @@ canvas.knob{cursor:ns-resize;display:block}
   font-family:'Inter',sans-serif;
 }
 #rec-preset:focus{border-color:rgba(255,107,53,0.7);color:var(--text-primary)}
+/* Save / Open project buttons */
+.hdr-btn{font-size:14px;padding:5px 9px;border-radius:8px;cursor:pointer;
+  display:flex;align-items:center;line-height:1;user-select:none}
+.hdr-btn:hover{background:rgba(255,255,255,0.12);color:var(--text-primary)}
+.hdr-btn.saving{opacity:0.5;pointer-events:none}
 /* Scrollbar global */
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -444,6 +449,8 @@ canvas.knob{cursor:ns-resize;display:block}
     <span id="logo-text">WAVECRAFT</span>
   </a>
   <input id="project-name" type="text" value="Untitled Project" spellcheck="false">
+  <button id="btn-save-project" class="glass-control hdr-btn" title="Save Project (.wavefront)">💾</button>
+  <label id="lbl-open-project" class="glass-control hdr-btn" title="Open Project (.wavefront)">📂<input type="file" id="project-file-input" accept=".wavefront" style="display:none"></label>
   <div class="header-sep"></div>
   <!-- BPM -->
   <div id="bpm-wrap">
@@ -2173,6 +2180,195 @@ function encodeWAV(buffer) {
   }
   return ab;
 }
+
+// ─── PROJECT SAVE / LOAD ─────────────────────────────────────────────────────
+
+function bufToBase64(ab) {
+  const bytes = new Uint8Array(ab);
+  let binary = '';
+  const CHUNK = 8192;
+  for (let i = 0; i < bytes.length; i += CHUNK)
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  return btoa(binary);
+}
+
+async function saveProject() {
+  if (!tracks.length) { alert('Nothing to save — add some tracks first.'); return; }
+  const btn = document.getElementById('btn-save-project');
+  btn.classList.add('saving');
+  btn.textContent = '⏳';
+  try {
+    const projectName = document.getElementById('project-name').value.trim() || 'Untitled Project';
+    const bpm = parseInt(document.getElementById('bpm-val').textContent) || 120;
+
+    const trackData = await Promise.all(tracks.map(async (t) => {
+      let audio = null;
+      if (t.buffer) {
+        const wav = encodeWAV(t.buffer); // returns ArrayBuffer
+        audio = bufToBase64(wav);
+      }
+      return {
+        id: t.id, name: t.name, color: t.color, startOffset: t.startOffset,
+        volume: t.volume, pan: t.pan, muted: t.muted, soloed: t.soloed,
+        eqBands: t.eqBands.map(b => ({
+          type: b.type, frequency: b.frequency, gain: b.gain, Q: b.Q, color: b.color
+        })),
+        effects: {
+          eq:   { enabled: t.effects.eq.enabled },
+          comp: {
+            enabled: t.effects.comp.enabled,
+            threshold: t.compNode.threshold.value,
+            knee:      t.compNode.knee.value,
+            ratio:     t.compNode.ratio.value,
+            attack:    t.compNode.attack.value,
+            release:   t.compNode.release.value,
+          },
+          reverb: {
+            enabled: t.effects.reverb.enabled,
+            mix:     t.effects.reverb.mix,
+            type:    t.effects.reverb.type || 'hall',
+          },
+          delay: {
+            enabled:  t.effects.delay.enabled,
+            time:     t.effects.delay.time,
+            feedback: t.effects.delay.feedback,
+            mix:      t.effects.delay.mix,
+          },
+          dist: { enabled: t.effects.dist.enabled, amount: t.effects.dist.amount },
+        },
+        audio,
+      };
+    }));
+
+    const payload = JSON.stringify({
+      format: 'wavefront', version: 1,
+      project: { name: projectName, bpm, savedAt: new Date().toISOString() },
+      tracks: trackData,
+    });
+
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = projectName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_') + '.wavefront';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 3000);
+  } catch (err) {
+    alert('Save failed: ' + err.message);
+  } finally {
+    btn.textContent = '💾';
+    btn.classList.remove('saving');
+  }
+}
+
+async function loadProject(file) {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (data.format !== 'wavefront') throw new Error('Not a valid .wavefront file.');
+
+    // Restore project name + BPM
+    if (data.project?.name) document.getElementById('project-name').value = data.project.name;
+    if (data.project?.bpm)  document.getElementById('bpm-val').textContent = data.project.bpm;
+
+    // Clear all existing tracks
+    tracks.length = 0;
+    renderTrackList(); renderTimeline();
+
+    if (!audioCtx) initAudio();
+    if (audioCtx.state !== 'running') await audioCtx.resume();
+
+    for (const td of (data.tracks || [])) {
+      // Decode base64 WAV → AudioBuffer
+      let buffer = null;
+      if (td.audio) {
+        const bStr  = atob(td.audio);
+        const bytes = new Uint8Array(bStr.length);
+        for (let i = 0; i < bStr.length; i++) bytes[i] = bStr.charCodeAt(i);
+        buffer = await audioCtx.decodeAudioData(bytes.buffer.slice(0));
+      }
+
+      const t = createTrack(td.name, buffer);
+      t.color       = td.color       || t.color;
+      t.startOffset = td.startOffset || 0;
+      t.volume      = td.volume      ?? 1;
+      t.pan         = td.pan         ?? 0;
+      t.muted       = td.muted       ?? false;
+      t.soloed      = td.soloed      ?? false;
+
+      // EQ bands
+      (td.eqBands || []).forEach((b, i) => {
+        if (!t.eqBands[i]) return;
+        t.eqBands[i].frequency = b.frequency;
+        t.eqBands[i].gain      = b.gain;
+        t.eqBands[i].Q        = b.Q;
+        t.eqNodes[i].frequency.value = b.frequency;
+        t.eqNodes[i].Q.value         = b.Q;
+        // gain applied below once enabled flag is known
+      });
+
+      const ef = td.effects || {};
+
+      // EQ enable
+      t.effects.eq.enabled = ef.eq?.enabled ?? false;
+      t.eqNodes.forEach((n, i) => n.gain.value = t.effects.eq.enabled ? t.eqBands[i].gain : 0);
+
+      // Compressor
+      if (ef.comp) {
+        t.effects.comp.enabled = ef.comp.enabled ?? false;
+        if (ef.comp.threshold != null) t.compNode.threshold.value = ef.comp.threshold;
+        if (ef.comp.knee      != null) t.compNode.knee.value      = ef.comp.knee;
+        if (ef.comp.ratio     != null) t.compNode.ratio.value     = ef.comp.ratio;
+        if (ef.comp.attack    != null) t.compNode.attack.value    = ef.comp.attack;
+        if (ef.comp.release   != null) t.compNode.release.value   = ef.comp.release;
+        if (!t.effects.comp.enabled) t.compNode.ratio.value = 1;
+      }
+
+      // Reverb
+      if (ef.reverb) {
+        t.effects.reverb.enabled = ef.reverb.enabled ?? false;
+        t.effects.reverb.mix     = ef.reverb.mix     ?? 0.3;
+        t.effects.reverb.type    = ef.reverb.type    || 'hall';
+        t.reverbGain.gain.value  = t.effects.reverb.enabled ? t.effects.reverb.mix : 0;
+        t.dryGain.gain.value     = t.effects.reverb.enabled ? (1 - t.effects.reverb.mix * 0.5) : 1;
+      }
+
+      // Delay
+      if (ef.delay) {
+        t.effects.delay.enabled  = ef.delay.enabled  ?? false;
+        t.effects.delay.time     = ef.delay.time     ?? 0.35;
+        t.effects.delay.feedback = ef.delay.feedback ?? 0.4;
+        t.effects.delay.mix      = ef.delay.mix      ?? 0;
+        t.delayNode.delayTime.value  = t.effects.delay.time;
+        t.delayFbGain.gain.value     = t.effects.delay.feedback;
+        t.delayMixGain.gain.value    = t.effects.delay.enabled ? t.effects.delay.mix : 0;
+      }
+
+      // Distortion
+      if (ef.dist) {
+        t.effects.dist.enabled = ef.dist.enabled ?? false;
+        t.effects.dist.amount  = ef.dist.amount  ?? 0;
+        t.distMixGain.gain.value = t.effects.dist.enabled ? t.effects.dist.amount : 0;
+      }
+
+      // Apply gain/pan
+      t.gainNode.gain.value   = t.muted ? 0 : t.volume;
+      t.pannerNode.pan.value  = t.pan;
+    }
+
+    updateDuration(); renderTrackList(); renderTimeline();
+  } catch (err) {
+    alert('Could not open project:\n' + err.message);
+  }
+}
+
+document.getElementById('btn-save-project').addEventListener('click', saveProject);
+document.getElementById('project-file-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (file) await loadProject(file);
+  e.target.value = '';
+});
 
 // ─── DIALOG ──────────────────────────────────────────────────────────────────
 let dialogCallback=null;
